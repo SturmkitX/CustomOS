@@ -99,7 +99,15 @@ static uint32_t readi32(uint8_t *buff, uint32_t offset) {
 
 static void read_bpb(f32 *fs, struct bios_parameter_block *bpb) {
     uint8_t sector0[512];
-    getSector(fs, sector0, 0, 1);
+    // getSector(fs, sector0, 0, 1);
+
+    // for some reason, Windows stored the FAT BPB in the 128th sector
+    getSector(fs, sector0, 128, 1);
+
+    // just for debugging
+    kprintf("BPB Sector0 b0: %u\n", sector0[0]);
+    kprintf("BPB Sector0 b1: %u\n", sector0[1]);
+    kprintf("BPB Sector0 b2: %u\n", sector0[2]);
 
     bpb->bytes_per_sector = readi16(sector0, 11);;
     bpb->sectors_per_cluster = sector0[13];
@@ -400,12 +408,15 @@ f32 *makeFilesystem(char *fatSystem) {
     read_bpb(fs, &fs->bpb);
 
     trim_spaces(fs->bpb.system_id, 8);
+    kprintf("Signature = %x\n", fs->bpb.signature);
     if(strcmp(fs->bpb.system_id, "FAT32") != 0) {
         kfree(fs);
         return NULL;
     }
 
     kprintf("Sectors per cluster: %d\n", fs->bpb.sectors_per_cluster);
+    kprintf("Sectors per FAT32: %d\n", fs->bpb.count_sectors_per_FAT32);
+    kprintf("FAT Count: %d\n", fs->bpb.FAT_count);
 
     fs->partition_begin_sector = 0;
     fs->fat_begin_sector = fs->partition_begin_sector + fs->bpb.reserved_sectors;
@@ -418,6 +429,7 @@ f32 *makeFilesystem(char *fatSystem) {
     fs->FAT = kmalloc(bytes_per_fat);
     uint32_t sector_i;
     for(sector_i = 0; sector_i < fs->bpb.count_sectors_per_FAT32; sector_i++) {
+        // kprintf("Entering iteration %d (%d) of %d\n", sector_i, fs->fat_begin_sector + sector_i, fs->bpb.count_sectors_per_FAT32);
         uint8_t sector[512];
         getSector(fs, sector, fs->fat_begin_sector + sector_i, 1);
         uint32_t integer_j;
@@ -552,6 +564,7 @@ void populate_dir(f32 *fs, struct directory *dir, uint32_t cluster) {
     uint32_t entry_count = 0;
 
     while(1) {
+        kprintf("Cluster = %d, EOC = %d, Cluster < EOC = %d\n", cluster, EOC, cluster < EOC);
         max_dirs += dirs_per_cluster;
         dir->entries = krealloc(dir->entries, max_dirs * sizeof (struct dir_entry));
         // Double the size in case we need to read a directory entry that
@@ -581,7 +594,7 @@ void populate_dir(f32 *fs, struct directory *dir, uint32_t cluster) {
             entry_count++;
         }
         cluster = get_next_cluster_id(fs, cluster);
-        if(cluster >= EOC) break;
+        if(cluster < 2 || cluster >= EOC) break;        // for some reason, if there is nothing there, next cluster is always 0 and the loop will never break
     }
     dir->num_entries = entry_count;
 }

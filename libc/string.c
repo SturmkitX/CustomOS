@@ -18,6 +18,17 @@ void int_to_ascii(int n, char str[]) {
     reverse(str);
 }
 
+void uint_to_ascii(uint32_t n, char str[]) {
+    int i = 0;
+    do {
+        str[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0);
+
+    str[i] = '\0';
+
+    reverse(str);
+}
+
 void hex_to_ascii(int n, char str[]) {
     append(str, '0');
     append(str, 'x');

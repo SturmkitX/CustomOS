@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "../cpu/ports.h"
 #include "../libc/mem.h"
+#include "../libc/string.h"
 #include <stdint.h>
 #include <stdarg.h>
 
@@ -183,6 +184,7 @@ int kprintf(char *fmt, ...) {
         p++; // Skip the %
         int i;
         char *s;
+        char intSerialized[20];
         switch(*p) {
         case 'c':
             i = va_arg(argp, int);
@@ -192,14 +194,21 @@ int kprintf(char *fmt, ...) {
             s = va_arg(argp, char *);
             kprint(s);
             break;
-        // case 'd':    NOT SUPPORTED YET
-        //     i = va_arg(argp, int);
-        //     terminal_write_dec(i);
-        //     break;
-        // case 'x':
-        //     i = va_arg(argp, int);
-        //     terminal_write_hex(i);
-        //     break;
+        case 'd':
+            i = va_arg(argp, int);
+            int_to_ascii(i, intSerialized);
+            kprint(intSerialized);
+            break;
+        case 'u':
+            i = va_arg(argp, int);
+            uint_to_ascii(i, intSerialized);
+            kprint(intSerialized);
+            break;
+        case 'x':
+            i = va_arg(argp, int);
+            hex_to_ascii(i, intSerialized);
+            kprint(intSerialized);
+            break;
         case '%':
             kprintc('%');
             break;
@@ -224,7 +233,8 @@ int sprintf(char *str, char *fmt, ...) {
         }
         p++; // Skip the %
         int i;
-        char *s;
+        char *s, *dec;
+        char intSerialized[20];
         switch(*p) {
         case 'c':
             i = va_arg(argp, int);
@@ -236,21 +246,30 @@ int sprintf(char *str, char *fmt, ...) {
                 *str++ = *s++;
             }
             break;
-        // case 'd':
-        //     i = va_arg(argp, int);
-        //     char decbuff[13]; // At most 12 decimal places for 32 bit int.
-        //     char *dec = itos(i, decbuff, 13);
-        //     while(*dec) {
-        //         *str++ = *dec++;
-        //     }
-        //     break;
-        // case 'x':
-        //     i = va_arg(argp, int);
-        //     for(int j = 28; j >= 0; j-=4)
-        //     {
-        //         *str++ = hex_char(i>>j);
-        //     }
-        //     break;
+        case 'd':
+            i = va_arg(argp, int);
+            int_to_ascii(i, intSerialized);
+            dec = intSerialized;
+            while(*dec) {
+                *str++ = *dec++;
+            }
+            break;
+        case 'u':
+            i = va_arg(argp, int);
+            uint_to_ascii(i, intSerialized);
+            dec = intSerialized;
+            while(*dec) {
+                *str++ = *dec++;
+            }
+            break;
+        case 'x':
+            i = va_arg(argp, int);
+            hex_to_ascii(i, intSerialized);
+            dec = intSerialized;
+            while(*dec) {
+                *str++ = *dec++;
+            }
+            break;
         case '%':
             *str++ = '%';
             break;

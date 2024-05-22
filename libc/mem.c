@@ -17,7 +17,10 @@ void memory_set(void *dest, uint8_t val, uint32_t len) {
 /* This should be computed at link time, but a hardcoded
  * value is fine for now. Remember that our kernel starts
  * at 0x1000 as defined on the Makefile */
-uint32_t free_mem_addr = 0x10000;
+ // EDIT: I change to 0x200000, cause the original caused the FAT initialization process to overwrite some other data
+ // including video memory, also brutally crashed QEMU at some point
+ // hopefully, at this point in memory, no one will be able to interrupt us
+uint32_t free_mem_addr = 0x200000;
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
 void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
@@ -28,9 +31,11 @@ void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
     }
     /* Save also the physical address */
     if (phys_addr) *phys_addr = free_mem_addr;
-    *phys_addr = size;
 
     uint32_t ret = free_mem_addr + 4;
+
+    uint32_t* header = (uint32_t*)free_mem_addr;
+    *header = size;
     free_mem_addr += (size + 4); /* Remember to increment the pointer and size header */
     return (void*)ret;
 }

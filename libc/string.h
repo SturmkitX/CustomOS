@@ -1,7 +1,10 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
+#include <stdint.h>
+
 void int_to_ascii(int n, char str[]);
+void uint_to_ascii(uint32_t n, char str[]);
 void hex_to_ascii(int n, char str[]);
 void reverse(char s[]);
 int strlen(char s[]);
