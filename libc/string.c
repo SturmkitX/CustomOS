@@ -75,3 +75,17 @@ int strcmp(char s1[], char s2[]) {
     }
     return s1[i] - s2[i];
 }
+
+int toupper(int c) {
+    if(c >= 97 && c <= 122) {
+        return c - 32;
+    }
+    return c;
+}
+
+int tolower(int c) {
+    if(c >=65 && c <= 90) {
+        return c + 32;
+    }
+    return c;
+}

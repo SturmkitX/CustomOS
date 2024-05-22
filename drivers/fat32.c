@@ -2,9 +2,12 @@
 #include "ata_pio_drv.h"
 #include <stdint.h>
 #include "../libc/mem.h"
+#include "../libc/string.h"
 // #include "kheap.h"
 // #include "common.h"
 // #include "kernio.h"
+
+#define PANIC kprintf   // no specific implementation for PANIC atm
 
 f32 *master_fs;
 //int x;
@@ -121,8 +124,8 @@ static void read_bpb(f32 *fs, struct bios_parameter_block *bpb) {
     bpb->windows_flags = sector0[65];
     bpb->signature = sector0[66];
     bpb->volume_id = readi32(sector0, 67);
-    memcpy(&bpb->volume_label, sector0 + 71, 11); bpb->volume_label[11] = 0;
-    memcpy(&bpb->system_id, sector0 + 82, 8); bpb->system_id[8] = 0;
+    memory_copy(&bpb->volume_label, sector0 + 71, 11); bpb->volume_label[11] = 0;
+    memory_copy(&bpb->system_id, sector0 + 82, 8); bpb->system_id[8] = 0;
 }
 
 static uint32_t sector_for_cluster(f32 *fs, uint32_t cluster) {
@@ -191,7 +194,7 @@ static char *parse_long_name(uint8_t *entries, uint8_t entry_count) {
 
 static void clear_cluster(f32 *fs, uint32_t cluster) {
     uint8_t buffer[fs->cluster_size];
-    memset(buffer, 0, fs->cluster_size);
+    memory_set(buffer, 0, fs->cluster_size);
     putCluster(fs, buffer, cluster);
 }
 
@@ -231,7 +234,7 @@ static uint8_t checksum_fname(char *fname) {
 }
 
 static void write_8_3_filename(char *fname, uint8_t *buffer) {
-    memset(buffer, ' ', 11);
+    memory_set(buffer, ' ', 11);
     uint32_t namelen = strlen(fname);
     // find the extension
     int i;
@@ -248,7 +251,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
     if(dot_index >= 0) {
         for(i = 0; i < 3; i++) {
             uint32_t c_index = dot_index + 1 + i;
-            uint8_t c = c_index >= namelen ? ' ' : k_toupper(fname[c_index]);
+            uint8_t c = c_index >= namelen ? ' ' : toupper(fname[c_index]);
             buffer[8 + i] = c;
         }
     }
@@ -266,7 +269,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
     if(firstpart_len > 8) {
         // Write the weird tilde thing.
         for(i = 0; i < 6; i++) {
-            buffer[i] = k_toupper(fname[i]);
+            buffer[i] = toupper(fname[i]);
         }
         buffer[6] = '~';
         buffer[7] = '1'; // probably need to enumerate like files and increment.
@@ -275,7 +278,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
         // Just write the file name.
         uint32_t j;
         for(j = 0; j < firstpart_len; j++) {
-            buffer[j] = k_toupper(fname[j]);
+            buffer[j] = toupper(fname[j]);
         }
     }
 }
@@ -467,10 +470,10 @@ static uint8_t *read_dir_entry(f32 *fs, uint8_t *start, uint8_t *end, struct dir
         // There's no long file name.
         // Trim up the short filename.
         dirent->name = kmalloc(13);
-        memcpy(dirent->name, entry, 11);
+        memory_copy(dirent->name, entry, 11);
         dirent->name[11] = 0;
         char extension[4];
-        memcpy(extension, dirent->name + 8, 3);
+        memory_copy(extension, dirent->name + 8, 3);
         extension[3] = 0;
         trim_spaces(extension, 3);
 
@@ -480,7 +483,7 @@ static uint8_t *read_dir_entry(f32 *fs, uint8_t *start, uint8_t *end, struct dir
         if(strlen(extension) > 0) {
             uint32_t len = strlen(dirent->name);
             dirent->name[len++] = '.';
-            memcpy(dirent->name + len, extension, 4);
+            memory_copy(dirent->name + len, extension, 4);
         }
     }
 
@@ -626,7 +629,7 @@ void delFile(f32 *fs, struct directory *dir, char *filename) { //struct dir_entr
             // We have a target dirent! see if it's the one we want!
             if(strcmp(target_dirent.name, filename) == 0) {
                 // We found it! Invalidate all the entries.
-                memset(entry, 0, nextentry - entry);
+                memory_set(entry, 0, nextentry - entry);
                 putCluster(fs, root_cluster, cluster);
                 if(secondcluster) {
                     putCluster(fs, root_cluster + fs->cluster_size, secondcluster);
@@ -670,7 +673,7 @@ uint8_t *readFile(f32 *fs, struct dir_entry *dirent) {
         uint32_t remaining = dirent->file_size - copiedbytes;
         uint32_t to_copy = remaining > fs->cluster_size ? fs->cluster_size : remaining;
 
-        memcpy(filecurrptr, cbytes, to_copy);
+        memory_copy(filecurrptr, cbytes, to_copy);
 
         filecurrptr += fs->cluster_size;
         copiedbytes += to_copy;
@@ -720,12 +723,12 @@ static void writeFile_impl(f32 *fs, struct directory *dir, uint8_t *file, char *
                 firstcluster = currcluster;
             }
             uint8_t cluster_buffer[fs->cluster_size];
-            memset(cluster_buffer, 0, fs->cluster_size);
+            memory_set(cluster_buffer, 0, fs->cluster_size);
             uint32_t bytes_to_write = flen - writtenbytes;
             if(bytes_to_write > fs->cluster_size) {
                 bytes_to_write = fs->cluster_size;
             }
-            memcpy(cluster_buffer, file + writtenbytes, bytes_to_write);
+            memory_copy(cluster_buffer, file + writtenbytes, bytes_to_write);
             writtenbytes += bytes_to_write;
             putCluster(fs, cluster_buffer, currcluster);
             if(prevcluster) {
