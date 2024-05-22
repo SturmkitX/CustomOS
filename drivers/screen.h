@@ -14,7 +14,12 @@
 /* Public kernel API */
 void clear_screen();
 void kprint_at(char *message, int col, int row);
+void kprintc_at(char message, int col, int row);
 void kprint(char *message);
+void kprintc(char message);
 void kprint_backspace();
+
+int kprintf(char *fmt, ...);
+int sprintf(char *str, char *fmt, ...);
 
 #endif

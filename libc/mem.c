@@ -1,13 +1,15 @@
 #include "mem.h"
 
-void memory_copy(uint8_t *dest, uint8_t *source, int nbytes) {
+void memory_copy(void *dest, void *source, int nbytes) {
     int i;
+    uint8_t* cdest = (uint8_t*)dest;
+    uint8_t* csource = (uint8_t*)source;
     for (i = 0; i < nbytes; i++) {
-        *(dest + i) = *(source + i);
+        *(cdest + i) = *(csource + i);
     }
 }
 
-void memory_set(uint8_t *dest, uint8_t val, uint32_t len) {
+void memory_set(void *dest, uint8_t val, uint32_t len) {
     uint8_t *temp = (uint8_t *)dest;
     for ( ; len != 0; len--) *temp++ = val;
 }
@@ -18,7 +20,7 @@ void memory_set(uint8_t *dest, uint8_t val, uint32_t len) {
 uint32_t free_mem_addr = 0x10000;
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
-uint8_t* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
+void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
     /* Pages are aligned to 4K, or 0x1000 */
     if (align == 1 && (free_mem_addr & 0xFFFFF000)) {
         free_mem_addr &= 0xFFFFF000;
@@ -30,16 +32,16 @@ uint8_t* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
 
     uint32_t ret = free_mem_addr + 4;
     free_mem_addr += (size + 4); /* Remember to increment the pointer and size header */
-    return (uint8_t*)ret;
+    return (void*)ret;
 }
 
-uint8_t* kmalloc(size_t size) {
+void* kmalloc(size_t size) {
     return kmalloc2(size, 1, NULL);
 }
 
-uint8_t* krealloc(uint8_t* buff, size_t size)
+void* krealloc(void* buff, size_t size)
 {
-    uint8_t* newchunk = kmalloc(size);
+    void* newchunk = kmalloc(size);
     if (buff == NULL)
         return newchunk;
 
@@ -51,7 +53,7 @@ uint8_t* krealloc(uint8_t* buff, size_t size)
     return newchunk;
 }
 
-void kfree(uint8_t* buff)
+void kfree(void* buff)
 {
     uint32_t* header = ((uint32_t*)buff) - 1;
 

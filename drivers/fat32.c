@@ -3,11 +3,12 @@
 #include <stdint.h>
 #include "../libc/mem.h"
 #include "../libc/string.h"
+#include "screen.h"
 // #include "kheap.h"
 // #include "common.h"
 // #include "kernio.h"
 
-#define PANIC kprintf   // no specific implementation for PANIC atm
+#define PANIC kprint   // no specific implementation for PANIC atm
 
 f32 *master_fs;
 //int x;
@@ -251,7 +252,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
     if(dot_index >= 0) {
         for(i = 0; i < 3; i++) {
             uint32_t c_index = dot_index + 1 + i;
-            uint8_t c = c_index >= namelen ? ' ' : toupper(fname[c_index]);
+            uint8_t c = c_index >= namelen ? ' ' : k_toupper(fname[c_index]);
             buffer[8 + i] = c;
         }
     }
@@ -269,7 +270,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
     if(firstpart_len > 8) {
         // Write the weird tilde thing.
         for(i = 0; i < 6; i++) {
-            buffer[i] = toupper(fname[i]);
+            buffer[i] = k_toupper(fname[i]);
         }
         buffer[6] = '~';
         buffer[7] = '1'; // probably need to enumerate like files and increment.
@@ -278,7 +279,7 @@ static void write_8_3_filename(char *fname, uint8_t *buffer) {
         // Just write the file name.
         uint32_t j;
         for(j = 0; j < firstpart_len; j++) {
-            buffer[j] = toupper(fname[j]);
+            buffer[j] = k_toupper(fname[j]);
         }
     }
 }
@@ -395,7 +396,7 @@ f32 *makeFilesystem(char *fatSystem) {
     if(!identify()) {
         return NULL;
     }
-    printf("Filesystem identified!\n");
+    kprintf("Filesystem identified!\n");
     read_bpb(fs, &fs->bpb);
 
     trim_spaces(fs->bpb.system_id, 8);
@@ -404,7 +405,7 @@ f32 *makeFilesystem(char *fatSystem) {
         return NULL;
     }
 
-    printf("Sectors per cluster: %d\n", fs->bpb.sectors_per_cluster);
+    kprintf("Sectors per cluster: %d\n", fs->bpb.sectors_per_cluster);
 
     fs->partition_begin_sector = 0;
     fs->fat_begin_sector = fs->partition_begin_sector + fs->bpb.reserved_sectors;
@@ -429,7 +430,7 @@ f32 *makeFilesystem(char *fatSystem) {
 }
 
 void destroyFilesystem(f32 *fs) {
-    printf("Destroying filesystem.\n");
+    kprintf("Destroying filesystem.\n");
     flushFAT(fs);
     kfree(fs->FAT);
     kfree(fs);
@@ -807,7 +808,7 @@ void print_directory(f32 *fs, struct directory *dir) {
 //               dir->entries[i].name,
 //               dir->entries[i].dir_attrs & DIRECTORY?'D':' ',
 //               dir->entries[i].file_size, dir->entries[i].first_cluster);
-        printf("[%d] ", i);
+        kprintf("[%d] ", i);
 
 
         uint32_t j;
@@ -819,7 +820,7 @@ void print_directory(f32 *fs, struct directory *dir) {
             namebuff[j] = dir->entries[i].name[j];
         }
 
-        printf("%s %c %d ",
+        kprintf("%s %c %d ",
                namebuff,
                dir->entries[i].dir_attrs & DIRECTORY?'D':' ',
                dir->entries[i].file_size);
@@ -834,7 +835,7 @@ void print_directory(f32 *fs, struct directory *dir) {
             }
             cluster_count++;
         }
-        printf("clusters: [%d]\n", cluster_count);
+        kprintf("clusters: [%d]\n", cluster_count);
     }
     kfree(namebuff);
 }

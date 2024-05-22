@@ -2,6 +2,7 @@
 #include "../cpu/ports.h"
 #include "../libc/mem.h"
 #include <stdint.h>
+#include <stdarg.h>
 
 /* Declaration of private functions */
 int get_cursor_offset();
@@ -40,8 +41,27 @@ void kprint_at(char *message, int col, int row) {
     }
 }
 
+void kprintc_at(char message, int col, int row) {
+    /* Set cursor if col/row are negative */
+    int offset;
+    if (col >= 0 && row >= 0)
+        offset = get_offset(col, row);
+    else {
+        offset = get_cursor_offset();
+        row = get_offset_row(offset);
+        col = get_offset_col(offset);
+    }
+
+    /* Loop through message and print it */
+    print_char(message, col, row, WHITE_ON_BLACK);
+}
+
 void kprint(char *message) {
     kprint_at(message, -1, -1);
+}
+
+void kprintc(char message) {
+    kprintc_at(message, -1, -1);
 }
 
 void kprint_backspace() {
@@ -148,3 +168,98 @@ void clear_screen() {
 int get_offset(int col, int row) { return 2 * (row * MAX_COLS + col); }
 int get_offset_row(int offset) { return offset / (2 * MAX_COLS); }
 int get_offset_col(int offset) { return (offset - (get_offset_row(offset)*2*MAX_COLS))/2; }
+
+int kprintf(char *fmt, ...) {
+    //return;
+    va_list argp;
+    va_start(argp, fmt);
+
+    char *p;
+    for(p = fmt; *p != 0; p++) {
+        if(*p != '%') {
+            kprintc(*p);
+            continue;
+        }
+        p++; // Skip the %
+        int i;
+        char *s;
+        switch(*p) {
+        case 'c':
+            i = va_arg(argp, int);
+            kprintc(i);
+            break;
+        case 's':
+            s = va_arg(argp, char *);
+            kprint(s);
+            break;
+        // case 'd':    NOT SUPPORTED YET
+        //     i = va_arg(argp, int);
+        //     terminal_write_dec(i);
+        //     break;
+        // case 'x':
+        //     i = va_arg(argp, int);
+        //     terminal_write_hex(i);
+        //     break;
+        case '%':
+            kprintc('%');
+            break;
+        default:
+            kprintc('%');
+            kprintc(*p);
+            break;
+        }
+    }
+    return 0;
+}
+
+int sprintf(char *str, char *fmt, ...) {
+    va_list argp;
+    va_start(argp, fmt);
+
+    char *p;
+    for(p = fmt; *p != 0; p++) {
+        if(*p != '%') {
+            *str++ = *p;
+            continue;
+        }
+        p++; // Skip the %
+        int i;
+        char *s;
+        switch(*p) {
+        case 'c':
+            i = va_arg(argp, int);
+            *str++ = i;
+            break;
+        case 's':
+            s = va_arg(argp, char *);
+            while(*s) {
+                *str++ = *s++;
+            }
+            break;
+        // case 'd':
+        //     i = va_arg(argp, int);
+        //     char decbuff[13]; // At most 12 decimal places for 32 bit int.
+        //     char *dec = itos(i, decbuff, 13);
+        //     while(*dec) {
+        //         *str++ = *dec++;
+        //     }
+        //     break;
+        // case 'x':
+        //     i = va_arg(argp, int);
+        //     for(int j = 28; j >= 0; j-=4)
+        //     {
+        //         *str++ = hex_char(i>>j);
+        //     }
+        //     break;
+        case '%':
+            *str++ = '%';
+            break;
+        default:
+            *str++ = '%';
+            *str++ = *p;
+            break;
+        }
+    }
+    *str++ = 0;
+    return 0;
+}
