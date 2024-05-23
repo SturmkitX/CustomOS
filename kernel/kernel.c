@@ -69,6 +69,9 @@ void user_input(char *input) {
             return;
         }
 
+        // kprint("Creating a new directory...");
+        // mkdir(fat32, &dir, "GENERA");
+
         kprintf("Printing FAT contents (items = %d)...\n", dir.num_entries);
         print_directory(fat32, &dir);
     } else if (strcmp(input, "DISK") == 0) {

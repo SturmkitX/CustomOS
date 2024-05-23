@@ -148,6 +148,9 @@ void getCluster(f32 *fs, uint8_t *buff, uint32_t cluster_number) { // static
     }
     uint32_t sector = sector_for_cluster(fs, cluster_number);
     uint32_t sector_count = fs->bpb.sectors_per_cluster;
+
+    kprintf("Cluster = %d, Sector = %d, Sector begin = %x\n", cluster_number, sector, sector * 512);
+    // asm volatile("hlt");
     getSector(fs, buff, sector, sector_count);
 }
 
@@ -418,11 +421,14 @@ f32 *makeFilesystem(char *fatSystem) {
     kprintf("Sectors per FAT32: %d\n", fs->bpb.count_sectors_per_FAT32);
     kprintf("FAT Count: %d\n", fs->bpb.FAT_count);
 
-    fs->partition_begin_sector = 0;
+    fs->partition_begin_sector = 128;   // it was originally zero, but our FAT info starts at sector 128
     fs->fat_begin_sector = fs->partition_begin_sector + fs->bpb.reserved_sectors;
     fs->cluster_begin_sector = fs->fat_begin_sector + (fs->bpb.FAT_count * fs->bpb.count_sectors_per_FAT32);
     fs->cluster_size = 512 * fs->bpb.sectors_per_cluster;
     fs->cluster_alloc_hint = 0;
+
+    kprintf("BPB Reserved sectors: %d\n", fs->bpb.reserved_sectors);
+    kprintf("FAT begin sector: %d %x\n", fs->fat_begin_sector, fs->fat_begin_sector * 512);
 
     // Load the FAT
     uint32_t bytes_per_fat = 512 * fs->bpb.count_sectors_per_FAT32;
@@ -594,7 +600,7 @@ void populate_dir(f32 *fs, struct directory *dir, uint32_t cluster) {
             entry_count++;
         }
         cluster = get_next_cluster_id(fs, cluster);
-        if(cluster < 2 || cluster >= EOC) break;        // for some reason, if there is nothing there, next cluster is always 0 and the loop will never break
+        if(cluster >= EOC) break;        // for some reason, if there is nothing there, next cluster is always 0 and the loop will never break
     }
     dir->num_entries = entry_count;
 }
@@ -844,7 +850,8 @@ void print_directory(f32 *fs, struct directory *dir) {
             cluster = fs->FAT[cluster];
             if(cluster >= EOC) break;
             if(cluster == 0) {
-                PANIC("BAD CLUSTER CHAIN! FS IS CORRUPT!");
+                PANIC("BAD CLUSTER CHAIN! FS IS CORRUPT! Halting...");
+                asm volatile("hlt");
             }
             cluster_count++;
         }
