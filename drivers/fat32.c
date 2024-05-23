@@ -581,6 +581,12 @@ void populate_dir(f32 *fs, struct directory *dir, uint32_t cluster) {
         uint8_t *entry = root_cluster;
         while((uint32_t)(entry - root_cluster) < fs->cluster_size) {
             uint8_t first_byte = *entry;
+            uint32_t entryNum = (uint32_t)(entry - root_cluster) / 32;
+            // if (entryNum == 7)
+            //     kprintf("Entry 7 last bytes + next 3: %d %d %d %d %d %d\n", entry[29], entry[30], entry[31], entry[32], entry[33], entry[34]);
+            // if (entryNum < 15)
+            //     kprintf("Entry %d first byte %x\n", entryNum + 1, first_byte);
+
             if(first_byte == 0x00 || first_byte == 0xE5) {
                 // This directory entry has never been written
                 // or it has been deleted.
@@ -594,6 +600,7 @@ void populate_dir(f32 *fs, struct directory *dir, uint32_t cluster) {
             next_dir_entry(fs, root_cluster, entry, &nextentry, target_dirent, cluster, &secondcluster);
             entry = nextentry;
             if(secondcluster) {
+                kprint("Changing to second cluster...");
                 cluster = secondcluster;
             }
 

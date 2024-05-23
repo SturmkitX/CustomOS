@@ -147,7 +147,8 @@ void ata_pio_read28(uint32_t LBA, uint8_t sectorcount, uint8_t *target) {
         }
         // Transfer the data!
         port_words_in(ATA_PRIMARY_DATA, (void *)target, 256);
-        target += 256;
+        // target += 256;
+        target += 512;
     }
 
 }
@@ -193,7 +194,8 @@ void ata_pio_read48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
         }
         // Transfer the data!
         port_words_in(ATA_PRIMARY_DATA, (void *)target, 256);
-        target += 256;
+        // target += 256;
+        target += 512;
     }
 
 }
@@ -233,7 +235,8 @@ void ata_pio_write48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
         }
         // Transfer the data!
         port_words_out(ATA_PRIMARY_DATA, (void *)target, 256);
-        target += 256;
+        // target += 256;   // words were mistaken for bytes
+        target += 512;
     }
 
     // Flush the cache.

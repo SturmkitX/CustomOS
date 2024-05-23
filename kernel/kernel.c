@@ -74,6 +74,29 @@ void user_input(char *input) {
 
         kprintf("Printing FAT contents (items = %d)...\n", dir.num_entries);
         print_directory(fat32, &dir);
+        kprintf("Item 6 name: %s\n", dir.entries[5].name);
+
+        char* readmeContents = (char*) readFile(fat32, dir.entries + 5);
+        kprintf("README.txt contents: %s\n", readmeContents);
+
+        struct directory subdir;
+        populate_dir(fat32, &subdir, dir.entries[4].first_cluster);
+        kprintf("Printing Folder1 contents (items = %d)...\n", subdir.num_entries);
+        print_directory(fat32, &subdir);
+        char* notesContents = (char*) readFile(fat32, subdir.entries + 3);
+        kprintf("Folder1 Notes.txt contents: %s\n", notesContents);
+
+        // char* writeContents = "Baga-mi-as pula-n gura ta de zdreanta, de muista. Pisa-mi-ai pe fata ta, de zdrente de femei\r\n";
+        // struct directory newsubdir;
+        // populate_dir(fat32, &newsubdir, dir.entries[2].first_cluster);
+        // writeFile(fat32, &newsubdir, writeContents, "deschide.txt", strlen(writeContents));
+        // kprint("Created new file in GENERA folder. Check it out.");
+
+        // free_directory(fat32, &newsubdir);
+        free_directory(fat32, &subdir);
+        free_directory(fat32, &dir);
+
+        kfree(notesContents);
     } else if (strcmp(input, "DISK") == 0) {
         kprint("Checking disk presence...\n");
         uint8_t present = identify();

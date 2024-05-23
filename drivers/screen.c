@@ -206,6 +206,7 @@ int kprintf(char *fmt, ...) {
             break;
         case 'x':
             i = va_arg(argp, int);
+            intSerialized[0] = '\0';
             hex_to_ascii(i, intSerialized);
             kprint(intSerialized);
             break;
@@ -264,6 +265,7 @@ int sprintf(char *str, char *fmt, ...) {
             break;
         case 'x':
             i = va_arg(argp, int);
+            intSerialized[0] = '\0';
             hex_to_ascii(i, intSerialized);
             dec = intSerialized;
             while(*dec) {
