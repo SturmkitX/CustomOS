@@ -8,6 +8,7 @@
 
 #include "../drivers/fat32.h"
 #include "../drivers/ata_pio_drv.h"
+#include "../drivers/serial.h"
 
 void kernel_main() {
     isr_install();
@@ -102,6 +103,22 @@ void user_input(char *input) {
         uint8_t present = identify();
 
         kprintf("Disk present: %u\n", present);
+    } else if (strcmp(input, "SER") == 0) {
+        kprint("Checking serial comms...\n");
+        uint8_t serStatus = init_serial();
+
+        kprintf("Serial init status: %u\n", serStatus);
+
+        // Test send this string periodically
+        uint32_t index = 0;
+        char* testMessage = "How are you man?\r\n";
+        while (1) {
+            index++;
+            if (index % 100000000 == 0) {
+                kprint("Printing test message to serial\n");
+                write_string_serial(testMessage);
+            }
+        }
     }
     kprint("You said: ");
     kprint(input);
