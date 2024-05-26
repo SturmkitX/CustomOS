@@ -1,5 +1,6 @@
 #include "ports.h"
 #include <stddef.h>
+#include "type.h"
 
 /**
  * Read a byte from the specified port
@@ -63,4 +64,19 @@ void port_words_out (uint16_t port, void *buffer, uint16_t length)
     }
 
     // ERROR CHECKING MISSING
+}
+
+uint32_t port_dword_in (uint16_t port) {
+    uint16_t lowWord = port_word_in(port);
+    uint16_t highWord = port_word_in(port);
+
+    return (((uint32_t)highWord << 16) | lowWord);
+}
+
+void port_dword_out (uint16_t port, uint32_t data) {
+    uint16_t lowWord = low_16(data);
+    uint16_t highWord = high_16(data);
+
+    port_word_out(port, lowWord);
+    port_word_out(port, highWord);
 }

@@ -9,6 +9,7 @@
 #include "../drivers/fat32.h"
 #include "../drivers/ata_pio_drv.h"
 #include "../drivers/serial.h"
+#include "../cpu/pci.h"
 
 void kernel_main() {
     isr_install();
@@ -119,6 +120,11 @@ void user_input(char *input) {
                 write_string_serial(testMessage);
             }
         }
+    } else if (strcmp(input, "PCI") == 0) {
+        kprint("Checking PCI...\n");
+
+        // checkAllBuses();
+        printHeaderBytes(0, 3, 0);
     }
     kprint("You said: ");
     kprint(input);
