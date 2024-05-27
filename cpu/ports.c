@@ -38,6 +38,7 @@ void port_word_out (uint16_t port, uint16_t data) {
     asm volatile("out %%ax, %%dx" : : "a" (data), "d" (port));
 }
 
+// may need to be reimplemented using INSB (check OS-DEV ASM)
 uint16_t port_words_in (uint16_t port, void *buffer, uint16_t length)
 {
     uint16_t result;
@@ -67,16 +68,11 @@ void port_words_out (uint16_t port, void *buffer, uint16_t length)
 }
 
 uint32_t port_dword_in (uint16_t port) {
-    uint16_t lowWord = port_word_in(port);
-    uint16_t highWord = port_word_in(port);
-
-    return (((uint32_t)highWord << 16) | lowWord);
+    uint32_t result;
+    asm("in %%dx, %%eax" : "=a" (result) : "d" (port));
+    return result;
 }
 
 void port_dword_out (uint16_t port, uint32_t data) {
-    uint16_t lowWord = low_16(data);
-    uint16_t highWord = high_16(data);
-
-    port_word_out(port, lowWord);
-    port_word_out(port, highWord);
+    asm volatile("out %%eax, %%dx" : : "a" (data), "d" (port));
 }

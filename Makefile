@@ -15,8 +15,8 @@ DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 os-image.bin: boot/bootsect.bin kernel.bin
 #	cat $^ > os-image.bin
 	${DDPATH} if=/dev/zero of=os-image.bin bs=4K count=512
-	${DDPATH} if=boot/bootsect.bin of=os-image.bin bs=1b
-	${DDPATH} if=kernel.bin of=os-image.bin bs=1b seek=1
+	${DDPATH} conv=notrunc if=boot/bootsect.bin of=os-image.bin bs=1b
+	${DDPATH} conv=notrunc if=kernel.bin of=os-image.bin bs=1b seek=1
 
 # '--oformat binary' deletes all symbols as a collateral, so we don't need
 # to 'strip' them manually on this case
@@ -28,7 +28,7 @@ kernel.elf: boot/kernel_entry.o ${OBJ}
 	i686-elf-ld -o $@ -Ttext 0x1000 $^ 
 
 run: os-image.bin
-	qemu-system-x86_64 -fda os-image.bin -hda hdd1-raw2.img -m 512M
+	qemu-system-x86_64 -fda os-image.bin -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
 
 # Open the connection to qemu and load our kernel-object file with symbols
 debug: os-image.bin kernel.elf
