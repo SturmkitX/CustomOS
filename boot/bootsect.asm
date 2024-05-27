@@ -28,7 +28,9 @@ load_kernel:
     call print_nl
 
     mov bx, KERNEL_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 50 ; Our future kernel will be larger, make this big
+    mov dh, 52 ; Our future kernel will be larger, make this big; ATTENTION: Current Kernel is at least 56
+    ; sectors long and we risk getting errors. We should somehow load the contents of the floppy from the
+    ; protected 32-bit mode. If I increase dh past 52, the bootloader hangs when reading the floppy
     mov dl, [BOOT_DRIVE]
     call disk_load
     ret

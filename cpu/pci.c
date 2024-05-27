@@ -95,3 +95,46 @@ void printHeaderBytes(uint8_t bus, uint8_t device, uint8_t function) {
         kprintf("Test Offset %d: %x\n", offset, tmp);
     }
 }
+
+uint32_t getDeviceBAR0(uint16_t vendorID, uint16_t deviceID) {
+    uint32_t bus, device, address, tmp;
+    const uint32_t nodeID = (((uint32_t)deviceID << 16) | vendorID);
+    const uint32_t offsetBAR = (0x10 & 0xFC);
+    for (bus=0; bus < 256; bus++) {
+        for (device=0; device < 32; device++) {
+            // Create configuration address as per Figure 1
+            address = (uint32_t)((bus << 16) | (device << 11) | ((uint32_t)0x80000000));
+                    // Write out the address
+            port_dword_out(0xCF8, address);
+            tmp = port_dword_in(0xCFC);
+
+            if (tmp == nodeID) {
+                address |= offsetBAR;
+                port_dword_out(0xCF8, address);
+                return port_dword_in(0xCFC);
+            }
+        }
+    }
+}
+
+uint8_t getIRQNumber(uint16_t vendorID, uint16_t deviceID) {
+    uint32_t bus, device, address, tmp;
+    const uint32_t nodeID = (((uint32_t)deviceID << 16) | vendorID);
+    const uint32_t offsetIRQ = 0x3C;
+    for (bus=0; bus < 256; bus++) {
+        for (device=0; device < 32; device++) {
+            // Create configuration address as per Figure 1
+            address = (uint32_t)((bus << 16) | (device << 11) | ((uint32_t)0x80000000));
+                    // Write out the address
+            port_dword_out(0xCF8, address);
+            tmp = port_dword_in(0xCFC);
+
+            if (tmp == nodeID) {
+                address |= offsetIRQ;
+                port_dword_out(0xCF8, address);
+                tmp = port_dword_in(0xCFC);
+                return (uint8_t)(tmp & 0xFF);
+            }
+        }
+    }
+}

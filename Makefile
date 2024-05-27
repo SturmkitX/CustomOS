@@ -14,7 +14,7 @@ DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 # First rule is run by default
 os-image.bin: boot/bootsect.bin kernel.bin
 #	cat $^ > os-image.bin
-	${DDPATH} if=/dev/zero of=os-image.bin bs=4K count=512
+	${DDPATH} if=/dev/zero of=os-image.bin bs=1b count=2880
 	${DDPATH} conv=notrunc if=boot/bootsect.bin of=os-image.bin bs=1b
 	${DDPATH} conv=notrunc if=kernel.bin of=os-image.bin bs=1b seek=1
 

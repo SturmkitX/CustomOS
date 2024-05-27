@@ -9,6 +9,7 @@
 #include "../drivers/fat32.h"
 #include "../drivers/ata_pio_drv.h"
 #include "../drivers/serial.h"
+#include "../drivers/rtl8139.h"
 #include "../cpu/pci.h"
 
 void kernel_main() {
@@ -50,55 +51,55 @@ void user_input(char *input) {
     } else if (strcmp(input, "TEST") == 0) {
         kprint("Trying out our new INT!\n");
         asm("int $0x90");
-    } else if (strcmp(input, "FS") == 0) {
-        kprint("Opening file system (FAT32)!\n");
-        f32* fat32 = makeFilesystem(NULL);
+    // } else if (strcmp(input, "FS") == 0) {
+    //     kprint("Opening file system (FAT32)!\n");
+    //     f32* fat32 = makeFilesystem(NULL);
 
-        if (fat32 == NULL) {
-            kprint("FAT32 is NULL. FAIL");
-            return;
-        } else {
-            kprint("FAT32 found. SUCCESS!");
-        }
+    //     if (fat32 == NULL) {
+    //         kprint("FAT32 is NULL. FAIL");
+    //         return;
+    //     } else {
+    //         kprint("FAT32 found. SUCCESS!");
+    //     }
 
-        struct directory dir;
-        populate_root_dir(fat32, &dir);
+    //     struct directory dir;
+    //     populate_root_dir(fat32, &dir);
 
-        if (dir.entries != NULL) {
-            kprint("Entries have been populated.\n");
-        } else {
-            kprint("Entries are empty...");
-            return;
-        }
+    //     if (dir.entries != NULL) {
+    //         kprint("Entries have been populated.\n");
+    //     } else {
+    //         kprint("Entries are empty...");
+    //         return;
+    //     }
 
-        // kprint("Creating a new directory...");
-        // mkdir(fat32, &dir, "GENERA");
+    //     // kprint("Creating a new directory...");
+    //     // mkdir(fat32, &dir, "GENERA");
 
-        kprintf("Printing FAT contents (items = %d)...\n", dir.num_entries);
-        print_directory(fat32, &dir);
-        kprintf("Item 6 name: %s\n", dir.entries[5].name);
+    //     kprintf("Printing FAT contents (items = %d)...\n", dir.num_entries);
+    //     print_directory(fat32, &dir);
+    //     kprintf("Item 6 name: %s\n", dir.entries[5].name);
 
-        char* readmeContents = (char*) readFile(fat32, dir.entries + 5);
-        kprintf("README.txt contents: %s\n", readmeContents);
+    //     char* readmeContents = (char*) readFile(fat32, dir.entries + 5);
+    //     kprintf("README.txt contents: %s\n", readmeContents);
 
-        struct directory subdir;
-        populate_dir(fat32, &subdir, dir.entries[4].first_cluster);
-        kprintf("Printing Folder1 contents (items = %d)...\n", subdir.num_entries);
-        print_directory(fat32, &subdir);
-        char* notesContents = (char*) readFile(fat32, subdir.entries + 3);
-        kprintf("Folder1 Notes.txt contents: %s\n", notesContents);
+    //     struct directory subdir;
+    //     populate_dir(fat32, &subdir, dir.entries[4].first_cluster);
+    //     kprintf("Printing Folder1 contents (items = %d)...\n", subdir.num_entries);
+    //     print_directory(fat32, &subdir);
+    //     char* notesContents = (char*) readFile(fat32, subdir.entries + 3);
+    //     kprintf("Folder1 Notes.txt contents: %s\n", notesContents);
 
-        // char* writeContents = "Baga-mi-as pula-n gura ta de zdreanta, de muista. Pisa-mi-ai pe fata ta, de zdrente de femei\r\n";
-        // struct directory newsubdir;
-        // populate_dir(fat32, &newsubdir, dir.entries[2].first_cluster);
-        // writeFile(fat32, &newsubdir, writeContents, "deschide.txt", strlen(writeContents));
-        // kprint("Created new file in GENERA folder. Check it out.");
+    //     // char* writeContents = "Baga-mi-as pula-n gura ta de zdreanta, de muista. Pisa-mi-ai pe fata ta, de zdrente de femei\r\n";
+    //     // struct directory newsubdir;
+    //     // populate_dir(fat32, &newsubdir, dir.entries[2].first_cluster);
+    //     // writeFile(fat32, &newsubdir, writeContents, "deschide.txt", strlen(writeContents));
+    //     // kprint("Created new file in GENERA folder. Check it out.");
 
-        // free_directory(fat32, &newsubdir);
-        free_directory(fat32, &subdir);
-        free_directory(fat32, &dir);
+    //     // free_directory(fat32, &newsubdir);
+    //     free_directory(fat32, &subdir);
+    //     free_directory(fat32, &dir);
 
-        kfree(notesContents);
+    //     kfree(notesContents);
     } else if (strcmp(input, "DISK") == 0) {
         kprint("Checking disk presence...\n");
         uint8_t present = identify();
@@ -125,6 +126,19 @@ void user_input(char *input) {
 
         // checkAllBuses();
         printHeaderBytes(0, 3, 0);
+    } else if (strcmp(input, "NET") == 0) {
+        kprint("Checking RTL8139 status...\n");
+
+        uint32_t ioaddr = identifyRTL8139();
+        kprintf("Received IO Addr %u\n", ioaddr);
+
+        uint8_t* macAddr = getMACAddress(ioaddr);
+        kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
+
+        kfree(macAddr);
+        uint8_t rtlIRQ = getIRQNumber(0x10EC, 0x8139);
+        kprintf("RTL IRQ Number: %u\n", rtlIRQ);
+        initializeRTL8139(ioaddr);
     }
     kprint("You said: ");
     kprint(input);
