@@ -1,4 +1,4 @@
-C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c)
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c boot_stage2/*.c)
 HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h)
 # Nice syntax for file extension replacement
 OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
@@ -11,16 +11,22 @@ CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
 
 DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 
+all: os-image.bin kernel.bin
+	${DDPATH} conv=notrunc if=kernel.bin of=hdd1-raw2.img bs=1b seek=1
+
 # First rule is run by default
-os-image.bin: boot/bootsect.bin kernel.bin
+os-image.bin: boot/bootsect.bin stage2.bin
 #	cat $^ > os-image.bin
 	${DDPATH} if=/dev/zero of=os-image.bin bs=1b count=2880
 	${DDPATH} conv=notrunc if=boot/bootsect.bin of=os-image.bin bs=1b
-	${DDPATH} conv=notrunc if=kernel.bin of=os-image.bin bs=1b seek=1
+	${DDPATH} conv=notrunc if=stage2.bin of=os-image.bin bs=1b seek=1
 
 # '--oformat binary' deletes all symbols as a collateral, so we don't need
 # to 'strip' them manually on this case
 kernel.bin: boot/kernel_entry.o ${OBJ}
+	i686-elf-ld -o $@ -Ttext 0x00200200 $^ --oformat binary
+
+stage2.bin: boot_stage2/stage2.o drivers/screen.o libc/mem.o libc/string.o cpu/ports.o boot_stage2/stage2_entry.o drivers/ata_pio_drv.o
 	i686-elf-ld -o $@ -Ttext 0x1000 $^ --oformat binary
 
 # Used for debugging purposes
