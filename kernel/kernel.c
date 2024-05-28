@@ -132,13 +132,12 @@ void user_input(char *input) {
         uint32_t ioaddr = identifyRTL8139();
         kprintf("Received IO Addr %u\n", ioaddr);
 
-        uint8_t* macAddr = getMACAddress(ioaddr);
+        uint8_t* macAddr = getMACAddress();
         kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
 
         kfree(macAddr);
-        uint8_t rtlIRQ = getIRQNumber(0x10EC, 0x8139);
-        kprintf("RTL IRQ Number: %u\n", rtlIRQ);
-        // initializeRTL8139(ioaddr);
+        
+        initializeRTL8139();
     }
     kprint("You said: ");
     kprint(input);

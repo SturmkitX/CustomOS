@@ -20,6 +20,7 @@ void stage2_main() {
     kprintf("Disk Data first 5 sectors (1st sector): %x %x %x %x %x\n", diskData[0], diskData[1], diskData[2], diskData[3], diskData[4]);
     kprintf("Disk Data first 5 sectors (2nd sector): %x %x %x %x %x\n", diskData[512], diskData[513], diskData[514], diskData[515], diskData[516]);
 
+    // cast the Kernel start address to a void function pointer, then call the function (basically enter kernel)
     void (*kernel_entry)() = KERNEL_START_ADDR;
     (*kernel_entry)();
 }
