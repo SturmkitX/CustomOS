@@ -138,6 +138,10 @@ void user_input(char *input) {
         kfree(macAddr);
         
         initializeRTL8139();
+
+        kprint("Trying to send a packet...\n");
+        char* tstStr = "Ce faci mai baiatule mai? SPer ca iti merge bine!!!\n";     // must be at least 8 bytes long for the threashold to kick in
+        transmit_packet(tstStr, strlen(tstStr));
     }
     kprint("You said: ");
     kprint(input);

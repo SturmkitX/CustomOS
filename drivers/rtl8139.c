@@ -11,9 +11,17 @@
 
 #define RX_BUFFER_ADDR 0x003F0000   // just a bit before kmalloc start addr
 
-uint32_t RTL8139BaseAddress;
+#define TX_BUFFER0      0x003E0000
+#define TX_BUFFER1      0x003E0004
+#define TX_BUFFER2      0x003E0008
+#define TX_BUFFER3      0x003E000C
+#define TSA             0x20
+#define TSC             0x10
 
-void rtl8139_handler(registers_t*);
+uint32_t RTL8139BaseAddress;
+uint8_t RTL8139TXRegOffset;
+
+static void rtl8139_handler(registers_t*);
 
 uint32_t identifyRTL8139() {
     // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
@@ -72,18 +80,24 @@ uint8_t initializeRTL8139() {
     return 0;
 }
 
-void receive_packet() {
+void transmit_packet(void* buffer, uint16_t bufLenth) {
+    port_dword_out(RTL8139BaseAddress + TSA + RTL8139TXRegOffset * 4, buffer);
+    port_dword_out(RTL8139BaseAddress + TSC + RTL8139TXRegOffset * 4, (bufLenth & 0x1FFF));
+}
+
+static void receive_packet() {
     // Read the contents of the RX buffer (hopefully this is where the data is stored)
     uint8_t* buff = (uint8_t*) RX_BUFFER_ADDR;
     kprintf("Received packet first bytes: %x %x %x\n", buff[0], buff[1], buff[2]);
 }
 
-void rtl8139_handler(registers_t* regs) {
+static void rtl8139_handler(registers_t* regs) {
 	uint16_t status = port_word_in(RTL8139BaseAddress + 0x3e);
 	port_word_out(RTL8139BaseAddress + 0x3E, 0x05);
 	if(status & TOK) {
 		// Sent
         kprint("Successfully send NET packet");
+        RTL8139TXRegOffset = (RTL8139TXRegOffset + 1) % 4;
 	}
 	if (status & ROK) {
 		// Received
