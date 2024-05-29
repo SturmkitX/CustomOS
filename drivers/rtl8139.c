@@ -12,9 +12,9 @@
 #define RX_BUFFER_ADDR 0x003F0000   // just a bit before kmalloc start addr
 
 #define TX_BUFFER0      0x003E0000
-#define TX_BUFFER1      0x003E0004
-#define TX_BUFFER2      0x003E0008
-#define TX_BUFFER3      0x003E000C
+#define TX_BUFFER1      0x003E4000
+#define TX_BUFFER2      0x003E8000
+#define TX_BUFFER3      0x003EC000
 #define TSA             0x20
 #define TSC             0x10
 
@@ -77,7 +77,7 @@ uint8_t initializeRTL8139() {
     port_dword_out(RTL8139BaseAddress + 0x30, (uintptr_t)RX_BUFFER_ADDR); // send uint32_t memory location to RBSTART (0x30)
 
     // Allow only TOK and ROK IRQ events
-    port_word_out(RTL8139BaseAddress + 0x3C, 0xFFFF); // Sets the TOK and ROK bits high
+    port_word_out(RTL8139BaseAddress + 0x3C, 0x0005); // Sets the TOK and ROK bits high
 
     // Configure Receiver buffer
     port_dword_out(RTL8139BaseAddress + 0x44, 0xf | (1 << 7)); // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP
@@ -95,6 +95,8 @@ uint8_t initializeRTL8139() {
 }
 
 void transmit_packet(void* buffer, uint16_t bufLenth) {
+    // not sure if I should also check some TX status before transmitting
+
     port_dword_out(RTL8139BaseAddress + TSA + RTL8139TXRegOffset * 4, buffer);
     port_dword_out(RTL8139BaseAddress + TSC + RTL8139TXRegOffset * 4, bufLenth);
     RTL8139TXRegOffset = (RTL8139TXRegOffset + 1) % 4;

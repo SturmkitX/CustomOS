@@ -28,7 +28,7 @@ load_kernel:
     call print_nl
 
     mov bx, STAGE2_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 30 ; Our future kernel will be larger, make this big; ATTENTION: Current Kernel is at least 56
+    mov dh, 24 ; Our future kernel will be larger, make this big; ATTENTION: Current Kernel is at least 56
     ; sectors long and we risk getting errors. We should somehow load the contents of the floppy from the
     ; protected 32-bit mode. If I increase dh past 52, the bootloader hangs when reading the floppy
     mov dl, [BOOT_DRIVE]
@@ -43,7 +43,7 @@ BEGIN_PM:
     jmp $ ; Stay here when the kernel returns control to us (if ever)
 
 
-BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get overwritten
+BOOT_DRIVE db 0x80 ; It is a good idea to store it in memory because 'dl' may get overwritten
 MSG_REAL_MODE db "Started in 16-bit Real Mode", 0
 MSG_PROT_MODE db "Landed in 32-bit Protected Mode", 0
 MSG_LOAD_KERNEL db "Loading Stage2 into memory", 0

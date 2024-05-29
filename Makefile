@@ -11,8 +11,11 @@ CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
 
 DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 
-all: os-image.bin kernel.bin
-	${DDPATH} conv=notrunc if=kernel.bin of=hdd1-raw2.img bs=1b seek=1
+all: boot/bootsect.bin kernel.bin stage2.bin
+	${DDPATH} conv=notrunc if=/dev/zero of=hdd1-raw2.img bs=1b count=127
+	${DDPATH} conv=notrunc if=boot/bootsect.bin of=hdd1-raw2.img bs=1b
+	${DDPATH} conv=notrunc if=stage2.bin of=hdd1-raw2.img bs=1b seek=1
+	${DDPATH} conv=notrunc if=kernel.bin of=hdd1-raw2.img bs=1b seek=24
 
 # First rule is run by default
 os-image.bin: boot/bootsect.bin stage2.bin
@@ -24,7 +27,7 @@ os-image.bin: boot/bootsect.bin stage2.bin
 # '--oformat binary' deletes all symbols as a collateral, so we don't need
 # to 'strip' them manually on this case
 kernel.bin: boot/kernel_entry.o ${OBJ}
-	i686-elf-ld -o $@ -Ttext 0x00200200 $^ --oformat binary
+	i686-elf-ld -o $@ -Ttext 0x00203000 $^ --oformat binary
 
 stage2.bin: boot_stage2/stage2.o drivers/screen.o libc/mem.o libc/string.o cpu/ports.o boot_stage2/stage2_entry.o drivers/ata_pio_drv.o
 	i686-elf-ld -o $@ -Ttext 0x1000 $^ --oformat binary
@@ -34,7 +37,7 @@ kernel.elf: boot/kernel_entry.o ${OBJ}
 	i686-elf-ld -o $@ -Ttext 0x1000 $^ 
 
 run: os-image.bin
-	qemu-system-x86_64 -fda os-image.bin -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
+	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
 
 # Open the connection to qemu and load our kernel-object file with symbols
 debug: os-image.bin kernel.elf

@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define DISK_START_ADDR     0x00200000
-#define KERNEL_START_ADDR   0x00200200  // at the start of the 2nd sector
+#define KERNEL_START_ADDR   0x00203000  // at the start of the 25th sector
 
 void stage2_main() {
     kprint("Entered Stage 2\n");

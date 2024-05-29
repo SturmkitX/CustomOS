@@ -10,6 +10,7 @@
 #include "../drivers/ata_pio_drv.h"
 #include "../drivers/serial.h"
 #include "../drivers/rtl8139.h"
+#include "../drivers/arp.h"
 #include "../cpu/pci.h"
 
 void kernel_main() {
@@ -144,9 +145,18 @@ void user_input(char *input) {
         kprint("Trying to send a packet...\n");
         char* tstStr = "Ce faci mai baiatule mai? SPer ca iti merge bineasddddddddddddddddddddddddddddddddddddddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaassssssssssssssssssssssssssssssssssszzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx!!!\n";     // must be at least 8 bytes long for the threashold to kick in
         transmit_packet(tstStr, strlen(tstStr));
-        transmit_packet(tstStr, strlen(tstStr));
-        transmit_packet(tstStr, strlen(tstStr));
-        transmit_packet(tstStr, strlen(tstStr));
+        // transmit_packet(tstStr, strlen(tstStr));
+        // transmit_packet(tstStr, strlen(tstStr));
+        // transmit_packet(tstStr, strlen(tstStr));
+
+        // construct ARP
+        union IPAddress gwAddr;
+        gwAddr.integerForm = 167772674;     // 10.0.2.2
+
+        struct ARP *arp = constructARP(&gwAddr);
+        transmit_packet(arp, sizeof(struct ARP));
+
+        kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
     }
     kprint("You said: ");
     kprint(input);
