@@ -22,6 +22,21 @@ uint16_t pciConfigReadWord(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offs
     return tmp;
 }
 
+void pciConfigWriteWord(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint16_t word) {
+    uint32_t address;
+    uint32_t lbus  = (uint32_t)bus;
+    uint32_t lslot = (uint32_t)slot;
+    uint32_t lfunc = (uint32_t)func;
+    uint16_t tmp = 0;
+ 
+    // Create configuration address as per Figure 1
+    address = (uint32_t)((lbus << 16) | (lslot << 11) |
+              (lfunc << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+ 
+    port_dword_out(0xCF8, address);
+    port_dword_out(0xCFC, word);
+}
+
 uint8_t getHeaderType(uint8_t bus, uint8_t slot, uint8_t func) {
     uint16_t data = pciConfigReadWord(bus, slot, func, 0x0E);
     kprintf("Read Header type: %x\n", data);
@@ -115,6 +130,8 @@ uint32_t getDeviceBAR0(uint16_t vendorID, uint16_t deviceID) {
             }
         }
     }
+
+    return 0xFFFFFFFF;
 }
 
 uint8_t getIRQNumber(uint16_t vendorID, uint16_t deviceID) {
@@ -137,4 +154,6 @@ uint8_t getIRQNumber(uint16_t vendorID, uint16_t deviceID) {
             }
         }
     }
+
+    return 0xFF;
 }

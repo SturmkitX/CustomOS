@@ -26,8 +26,8 @@ static void rtl8139_handler(registers_t*);
 uint32_t identifyRTL8139() {
     // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
     uint32_t addr = getDeviceBAR0(0x10EC, 0x8139);
-    RTL8139BaseAddress = addr;
-    return (addr & 0xFFFFFFF0);
+    RTL8139BaseAddress = (addr & 0xFFFFFFF0);
+    return RTL8139BaseAddress;
 }
 
 uint8_t* getMACAddress() {
@@ -43,19 +43,33 @@ uint8_t* getMACAddress() {
 
 // rx_buffer must be 8k+16+1500 bytes
 uint8_t initializeRTL8139() {
+    kprintf("RTL8139 Init IO Addr: %u\n", RTL8139BaseAddress);
     // First check if PCI Bus Mastering is enabled
     uint16_t commandReg = pciConfigReadWord(0, 3, 0, 4);
-    uint8_t enabled = (uint8_t)(commandReg & 0x2);
+    uint8_t enabled = (uint8_t)(commandReg & 0x4);
 
-    // the Master Bit can be enabled, but not right now, not in the mood :))
+    if (enabled == 0) {
+        kprint("RTL8139 PCI Bus Mastering is DISABLED. Enabling now...\n");
+        // we MUST enable PCI Bus Mastering
+        uint8_t mask = commandReg |= (1 << 2);     // a fancier way of writing 4
+        pciConfigWriteWord(0, 3, 0, 4, mask);
+
+        // check value
+        commandReg = pciConfigReadWord(0, 3, 0, 4);
+        enabled = (uint8_t)(commandReg & 0x4);
+    }
+
     kprintf("PCI Bus Mastering is %s\n", enabled > 0 ? "ENABLED" : "DISABLED");
 
     // Power on the device
     port_byte_out( RTL8139BaseAddress + 0x52, 0x0);
 
+    kprint("RTL8139 Powered On\n");
+
     // Software reset
+    uint8_t resetCommand;
     port_byte_out( RTL8139BaseAddress + 0x37, 0x10);
-    while( (port_byte_in(RTL8139BaseAddress + 0x37) & 0x10) != 0) { }
+    while( ((resetCommand = port_byte_in(RTL8139BaseAddress + 0x37)) & 0x10) != 0) { kprintf("Reset Comm = %x\n", resetCommand); }
 
     kprint("RTL Software Reset done!\n");
 
@@ -63,7 +77,7 @@ uint8_t initializeRTL8139() {
     port_dword_out(RTL8139BaseAddress + 0x30, (uintptr_t)RX_BUFFER_ADDR); // send uint32_t memory location to RBSTART (0x30)
 
     // Allow only TOK and ROK IRQ events
-    port_dword_out(RTL8139BaseAddress + 0x3C, 0x0005); // Sets the TOK and ROK bits high
+    port_word_out(RTL8139BaseAddress + 0x3C, 0xFFFF); // Sets the TOK and ROK bits high
 
     // Configure Receiver buffer
     port_dword_out(RTL8139BaseAddress + 0x44, 0xf | (1 << 7)); // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP
@@ -82,7 +96,8 @@ uint8_t initializeRTL8139() {
 
 void transmit_packet(void* buffer, uint16_t bufLenth) {
     port_dword_out(RTL8139BaseAddress + TSA + RTL8139TXRegOffset * 4, buffer);
-    port_dword_out(RTL8139BaseAddress + TSC + RTL8139TXRegOffset * 4, (bufLenth & 0x1FFF));
+    port_dword_out(RTL8139BaseAddress + TSC + RTL8139TXRegOffset * 4, bufLenth);
+    RTL8139TXRegOffset = (RTL8139TXRegOffset + 1) % 4;
 }
 
 static void receive_packet() {
@@ -92,12 +107,13 @@ static void receive_packet() {
 }
 
 static void rtl8139_handler(registers_t* regs) {
+    kprint("GOT RTL8139 IRQ!!!!\n");
 	uint16_t status = port_word_in(RTL8139BaseAddress + 0x3e);
 	port_word_out(RTL8139BaseAddress + 0x3E, 0x05);
 	if(status & TOK) {
 		// Sent
-        kprint("Successfully send NET packet");
-        RTL8139TXRegOffset = (RTL8139TXRegOffset + 1) % 4;
+        kprint("Successfully sent NET packet");
+        // RTL8139TXRegOffset = (RTL8139TXRegOffset + 1) % 4;
 	}
 	if (status & ROK) {
 		// Received

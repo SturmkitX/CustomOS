@@ -139,8 +139,13 @@ void user_input(char *input) {
         
         initializeRTL8139();
 
+        
+    } else if (strcmp(input, "NET2") == 0) {
         kprint("Trying to send a packet...\n");
-        char* tstStr = "Ce faci mai baiatule mai? SPer ca iti merge bine!!!\n";     // must be at least 8 bytes long for the threashold to kick in
+        char* tstStr = "Ce faci mai baiatule mai? SPer ca iti merge bineasddddddddddddddddddddddddddddddddddddddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaassssssssssssssssssssssssssssssssssszzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx!!!\n";     // must be at least 8 bytes long for the threashold to kick in
+        transmit_packet(tstStr, strlen(tstStr));
+        transmit_packet(tstStr, strlen(tstStr));
+        transmit_packet(tstStr, strlen(tstStr));
         transmit_packet(tstStr, strlen(tstStr));
     }
     kprint("You said: ");
