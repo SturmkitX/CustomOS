@@ -10,8 +10,16 @@ union IPAddress {
     uint32_t integerForm;
 };
 
+struct EthernetFrame
+{
+    uint8_t dsthw[6];
+    uint8_t srchw[6];
+    uint16_t ethtype;
+};
+
 struct ARP
 {
+    struct EthernetFrame eth;
     uint16_t htype; // Hardware type
     uint16_t ptype; // Protocol type
     uint8_t  hlen; // Hardware address length (Ethernet = 6)
@@ -23,15 +31,7 @@ struct ARP
     uint8_t  dstpr[4]; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
 };
 
-struct EthARP
-{
-    uint8_t dsthw[6];
-    uint8_t srchw[6];
-    uint16_t ethtype;
-    struct ARP arp;
-};
-
 struct ARP* constructARP(union IPAddress* addr);
-struct EthARP* constructEthARP(union IPAddress* addr);
+struct ARP* sendARP(struct ARP* arp);
 
 #endif

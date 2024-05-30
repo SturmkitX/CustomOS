@@ -145,19 +145,14 @@ void user_input(char *input) {
         
     } else if (strcmp(input, "NET2") == 0) {
         kprint("Trying to send a packet...\n");
-        // char* tstStr = "Ce faci mai baiatule mai? SPer ca iti merge bineasddddddddddddddddddddddddddddddddddddddddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaassssssssssssssssssssssssssssssssssszzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx!!!\n";     // must be at least 8 bytes long for the threashold to kick in
-        // transmit_packet(tstStr, strlen(tstStr));
-        // transmit_packet(tstStr, strlen(tstStr));
-        // transmit_packet(tstStr, strlen(tstStr));
-        // transmit_packet(tstStr, strlen(tstStr));
 
         // construct ARP
         union IPAddress gwAddr;
-        gwAddr.integerForm = low_to_big_endian_dword(167772674);     // 10.0.2.2
+        gwAddr.integerForm = little_to_big_endian_dword(167772674);     // 10.0.2.2
 
-        struct EthARP *arp = constructEthARP(&gwAddr);
-        kprintf("EthARP size: %u\n", sizeof(struct EthARP));
-        transmit_packet(arp, sizeof(struct EthARP));
+        struct ARP *arp = constructARP(&gwAddr);
+        kprintf("ARP size: %u\n", sizeof(struct ARP));
+        transmit_packet(arp, sizeof(struct ARP));
 
         kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
     }

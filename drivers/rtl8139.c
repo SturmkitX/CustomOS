@@ -6,6 +6,8 @@
 #include "../cpu/isr.h"
 #include "../libc/function.h"
 
+#include "../libc/endian.h"
+
 #define TOK 0x4
 #define ROK 0x1
 
@@ -18,8 +20,11 @@
 #define TSA             0x20
 #define TSC             0x10
 
+#define RX_BUFFER_SIZE 8192
+
 uint32_t RTL8139BaseAddress;
 uint8_t RTL8139TXRegOffset;
+uint16_t RTL8139RXOffset;
 
 static void rtl8139_handler(registers_t*);
 
@@ -104,8 +109,39 @@ void transmit_packet(void* buffer, uint16_t bufLenth) {
 
 static void receive_packet() {
     // Read the contents of the RX buffer (hopefully this is where the data is stored)
-    uint8_t* buff = (uint8_t*) RX_BUFFER_ADDR;
-    kprintf("Received packet first bytes: %x %x %x\n", buff[0], buff[1], buff[2]);
+    uint8_t* buff = (uint8_t*) (RX_BUFFER_ADDR + RTL8139RXOffset);
+
+    // Skip packet header ??
+
+    // Read packet len
+    uint16_t frameLen = *((uint16_t*)buff + 1);
+    kprintf("Frame length: %u\n", frameLen);
+
+    buff += 4;
+
+    uint16_t ethType = big_to_little_endian_word(*(uint16_t*)(buff + 12));
+
+    switch (ethType) {
+        case 0x0806:
+            kprint("Received Eth Type: ARP\n");
+            break;
+        default:
+            kprint("Received Eth Type: I don't know\n");
+    }
+
+    kprintf("Received packet first bytes: %x %x %x %x %x\n", buff[0], buff[1], buff[2], buff[3], buff[4]);
+
+    // Should make a copy of the frame
+
+    // Update packet offset
+    RTL8139RXOffset = RTL8139RXOffset + frameLen + 4 + 3;
+
+    // the buffer has spare bytes after end, so strict inequality can be used
+    if (RTL8139RXOffset > RX_BUFFER_SIZE)
+        RTL8139RXOffset -= RX_BUFFER_SIZE;
+
+    // Set RX Buffer offset
+    port_word_out(RTL8139BaseAddress + 0x38, RTL8139RXOffset - 0x10);
 }
 
 static void rtl8139_handler(registers_t* regs) {
