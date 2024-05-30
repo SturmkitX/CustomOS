@@ -77,7 +77,7 @@ uint8_t initializeRTL8139() {
     port_dword_out(RTL8139BaseAddress + 0x30, (uintptr_t)RX_BUFFER_ADDR); // send uint32_t memory location to RBSTART (0x30)
 
     // Allow only TOK and ROK IRQ events
-    port_word_out(RTL8139BaseAddress + 0x3C, 0x0005); // Sets the TOK and ROK bits high
+    port_word_out(RTL8139BaseAddress + 0x3C, 0xFFFF); // Sets the TOK and ROK bits high
 
     // Configure Receiver buffer
     port_dword_out(RTL8139BaseAddress + 0x44, 0xf | (1 << 7)); // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP

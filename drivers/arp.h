@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+// Note that Ethernet and all subsequent protocols use Big Endian
+
 union IPAddress {
     uint8_t bytes[4];
     uint32_t integerForm;
@@ -21,8 +23,15 @@ struct ARP
     uint8_t  dstpr[4]; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
 };
 
-
+struct EthARP
+{
+    uint8_t dsthw[6];
+    uint8_t srchw[6];
+    uint16_t ethtype;
+    struct ARP arp;
+};
 
 struct ARP* constructARP(union IPAddress* addr);
+struct EthARP* constructEthARP(union IPAddress* addr);
 
 #endif

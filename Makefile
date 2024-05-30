@@ -36,8 +36,9 @@ stage2.bin: boot_stage2/stage2.o drivers/screen.o libc/mem.o libc/string.o cpu/p
 kernel.elf: boot/kernel_entry.o ${OBJ}
 	i686-elf-ld -o $@ -Ttext 0x1000 $^ 
 
-run: os-image.bin
-	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
+run:
+#	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
+	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -device rtl8139,netdev=u1 -netdev user,id=u1 -object filter-dump,id=f1,netdev=u1,file=dump.dat
 
 # Open the connection to qemu and load our kernel-object file with symbols
 debug: os-image.bin kernel.elf
