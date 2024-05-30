@@ -7,6 +7,7 @@
 #include "../libc/function.h"
 
 #include "../libc/endian.h"
+#include "arp.h"
 
 #define TOK 0x4
 #define ROK 0x1
@@ -119,11 +120,14 @@ static void receive_packet() {
 
     buff += 4;
 
-    uint16_t ethType = big_to_little_endian_word(*(uint16_t*)(buff + 12));
+    uint16_t ethType = big_to_little_endian_word(((struct EthernetFrame*)(buff))->ethtype);
 
     switch (ethType) {
         case 0x0806:
             kprint("Received Eth Type: ARP\n");
+            struct ARP* arp = (struct ARP*) buff;
+            kprintf("ARP Reply Opcode: %x\n", arp->opcode);
+            kprintf("ARP Reply MAC Addr: %x:%x:%x:%x:%x:%x\n", arp->srchw[0], arp->srchw[1], arp->srchw[2], arp->srchw[3], arp->srchw[4], arp->srchw[5]);
             break;
         default:
             kprint("Received Eth Type: I don't know\n");

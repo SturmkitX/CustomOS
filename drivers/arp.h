@@ -2,20 +2,10 @@
 #define _ARP_H
 
 #include <stdint.h>
+#include "ethernet.h"
 
 // Note that Ethernet and all subsequent protocols use Big Endian
 
-union IPAddress {
-    uint8_t bytes[4];
-    uint32_t integerForm;
-};
-
-struct EthernetFrame
-{
-    uint8_t dsthw[6];
-    uint8_t srchw[6];
-    uint16_t ethtype;
-};
 
 struct ARP
 {
