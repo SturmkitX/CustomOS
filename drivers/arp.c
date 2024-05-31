@@ -10,10 +10,8 @@
 static struct ARPEntry ArpCache[ARP_CACHE_MAX_SIZE];
 static uint32_t ArpCacheIndex = 0;
 
-struct ARP* constructARP(union IPAddress* addr) {
-    struct ARP* arp = (struct ARP*) kmalloc(sizeof(struct ARP));
-
-    constructEthernetBroadcast(&arp->eth);  // for now, make it a broadcast ARP
+void constructARP(struct ARP* arp, union IPAddress* addr) {
+    constructEthernetBroadcast(&arp->eth, 0x0806);  // for now, make it a broadcast ARP
 
     arp->htype = little_to_big_endian_word(0x1);   // Ethernet
     arp->ptype = little_to_big_endian_word(0x0800);    // IP
@@ -25,12 +23,14 @@ struct ARP* constructARP(union IPAddress* addr) {
 
     // dsthw is ignored in ARP
     memory_copy(arp->dstpr, addr->bytes, 4);
-
-    return arp;
 }
 
-void sendARP(struct ARP* arp) {
+void sendARP(struct ARP* arp, union IPAddress* ip) {
+    ArpCache[ArpCacheIndex].ip.integerForm = ip->integerForm;
+
     transmit_packet(arp, sizeof(struct ARP));
+    // the next ARP reply will be associated with this one (since the original IP is lost during transmission)
+    // Index will be incremented after saving the mac (if found)
 }
 
 uint8_t* getARPEntry(union IPAddress* addr) {
@@ -50,8 +50,8 @@ uint8_t* getARPEntry(union IPAddress* addr) {
     return ArpCache[i].mac;
 }
 
-void addARPEntry(union IPAddress* ip, uint8_t* mac) {
-    ArpCache[ArpCacheIndex].ip.integerForm = ip->integerForm;
+void associateMACAddress(uint8_t* mac) {
+    // should check for invalid MAC addresses (when I will find one)
     memory_copy(ArpCache[ArpCacheIndex].mac, mac, 6);
-    ArpCacheIndex = (ArpCacheIndex + 1) % ARP_CACHE_MAX_SIZE;
+    ArpCacheIndex++;
 }

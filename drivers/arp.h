@@ -26,9 +26,9 @@ struct ARPEntry {
     uint8_t mac[6];
 };
 
-struct ARP* constructARP(union IPAddress* addr);
-void sendARP(struct ARP* arp);
+void constructARP(struct ARP* arp, union IPAddress* addr);
+void sendARP(struct ARP* arp, union IPAddress* ip);
 uint8_t* getARPEntry(union IPAddress* addr);
-void addARPEntry(union IPAddress* ip, uint8_t* mac);
+void associateMACAddress(uint8_t* mac);
 
 #endif

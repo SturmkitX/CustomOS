@@ -17,7 +17,9 @@ struct EthernetFrame
     uint16_t ethtype;
 };
 
-uint8_t* getDummyIP();
+union IPAddress* getIPAddress();
+uint32_t getSubnetMask();
+union IPAddress* getGateway();
 void constructEthernetBroadcast(struct EthernetFrame* eth);
 void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC);
 uint8_t* getMACAddress();

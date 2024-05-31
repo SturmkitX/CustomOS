@@ -11,7 +11,7 @@ uint16_t calculateICMPEchoChecksum(struct ICMPEchoPacket* icmpHeader) {
 
 void constructICMPEcho(struct ICMPEchoPacket* icmp, uint16_t sequence) {
     // also need to add IP header
-    constructIPPacket(&icmp->ip, )
+    constructIPPacket(&icmp->ip, 32 + 8, 0x1, little_to_big_endian_dword(167772674));   // 40 bytes long ICMP, Protocol 1 (ICMP), Addr = 10.0.2.2
 
     icmp->header.type = 8;  // 8 = request, 0 = reply
     icmp->header.code = 0;  // should investigate this

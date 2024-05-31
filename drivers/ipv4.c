@@ -35,12 +35,31 @@ void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protoc
     ip->ttl = 128;  // It's ok for now
     ip->protocol = protocol;
 
-    memory_copy(ip->srcip, getDummyIP(), 4);
+    memory_copy(ip->srcip, getIPAddress(), 4);
     memory_copy(ip->dstip, dstip->bytes, 4);
 
     ip->header_checksum = calculateIPChecksum(ip);
 
     // we still have to construct the Ethernet Frame
     // we need to get the ARP entry
-    constructEthernetFrame(&ip->eth, NULL);
+    union IPAddress* ip_to_send = dstip;
+
+    // check if address is private
+    if ((dstip->integerForm & getSubnetMask()) != (getIPAddress()->integerForm & getSubnetMask())) {
+        ip_to_send = getGateway();
+    }
+
+    uint8_t* dstMac = getARPEntry(ip_to_send);
+    if (dstMac == NULL) {
+        // request the MAC address
+        struct ARP arp;
+        constructARP(&arp, ip_to_send);
+        sendARP(&arp, ip_to_send);
+
+        while (dstMac == NULL) {
+            // should probably add some timeout mechanism
+            dstMac = getARPEntry(ip_to_send);
+        }
+    }
+    constructEthernetFrame(&ip->eth, dstMac, 0x0800);
 }
