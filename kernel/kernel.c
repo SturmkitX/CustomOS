@@ -14,6 +14,7 @@
 #include "../cpu/pci.h"
 
 #include "../libc/endian.h"
+#include "../drivers/icmp.h"
 
 void kernel_main() {
     isr_install();
@@ -147,17 +148,31 @@ void user_input(char *input) {
         kprint("Trying to send a packet...\n");
 
         // construct ARP
+        struct ARP arp;
         union IPAddress gwAddr;
-        gwAddr.integerForm = little_to_big_endian_dword(167772674);     // 10.0.2.2
+        gwAddr.integerForm = 167772674;     // 10.0.2.2
 
         // uint32_t arpi;
         // for (arpi=0; arpi < 32; arpi++) {
-            struct ARP *arp = constructARP(&gwAddr);
+            constructARP(&arp, &gwAddr);
             kprintf("ARP size: %u\n", sizeof(struct ARP));
-            transmit_packet(arp, sizeof(struct ARP));
+            transmit_packet(&arp, sizeof(struct ARP));
 
             kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
         // }
+        
+    } else if (strcmp(input, "ICMP") == 0) {
+        kprint("Trying to send ICMP packet to 192.168.0.1\n");
+        union IPAddress target_ip;
+        target_ip.integerForm = 3232238081;
+
+        struct ICMPEchoPacket icmp;
+        constructICMPEcho(&icmp, &target_ip, 1);
+
+        kprintf("ICMP Echo size: %u\n", sizeof(struct ICMPEchoPacket));
+        transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
+
+        kprint("Sent ICMP packet from 10.0.2.15 (us) to 192.168.10.1 (local hw router)\n");
         
     }
     kprint("You said: ");

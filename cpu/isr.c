@@ -150,11 +150,14 @@ void irq_handler(registers_t *r) {
     */
 
     TestIntNumber++;
+    if (intIndex == 0x90) {
+        kprint("Got Software Interrupt 0x90!!\n");
+    }
     
     /* Handle the interrupt in a more modular way */
     if (interrupt_handlers[intIndex] != 0) {
         isr_t handler = interrupt_handlers[intIndex];
-        handler(r);
+        handler(r);     // should probably do it in another thread
     }
 }
 

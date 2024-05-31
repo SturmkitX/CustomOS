@@ -127,6 +127,7 @@ static void receive_packet() {
             kprint("Received Eth Type: ARP\n");
             struct ARP* arp = (struct ARP*) buff;
             associateMACAddress(arp->srchw);
+            asm("int $0x90");
             kprintf("ARP Reply Opcode: %x\n", arp->opcode);
             kprintf("ARP Reply MAC Addr: %x:%x:%x:%x:%x:%x\n", arp->srchw[0], arp->srchw[1], arp->srchw[2], arp->srchw[3], arp->srchw[4], arp->srchw[5]);
             break;

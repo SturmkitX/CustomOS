@@ -20,8 +20,8 @@ struct EthernetFrame
 union IPAddress* getIPAddress();
 uint32_t getSubnetMask();
 union IPAddress* getGateway();
-void constructEthernetBroadcast(struct EthernetFrame* eth);
-void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC);
+void constructEthernetBroadcast(struct EthernetFrame* eth, uint16_t ethtype);
+void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC, uint16_t ethtype);
 uint8_t* getMACAddress();
 void transmit_packet(void* buffer, uint16_t bufLenth);
 
