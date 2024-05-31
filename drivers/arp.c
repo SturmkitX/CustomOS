@@ -7,8 +7,8 @@
 
 #define ARP_CACHE_MAX_SIZE 128
 
-static struct ARPEntry ArpCache[ARP_CACHE_MAX_SIZE];
-static uint32_t ArpCacheIndex = 0;
+struct ARPEntry ArpCache[ARP_CACHE_MAX_SIZE];
+uint32_t ArpCacheIndex = 0;
 
 void constructARP(struct ARP* arp, union IPAddress* dstaddr) {
     constructEthernetBroadcast(&arp->eth, 0x0806);  // for now, make it a broadcast ARP
@@ -26,6 +26,11 @@ void constructARP(struct ARP* arp, union IPAddress* dstaddr) {
 
     // dsthw is ignored in ARP
     memory_copy(arp->dstpr, ((union IPAddress)(little_to_big_endian_dword(dstaddr->integerForm))).bytes, 4);
+
+    // initialize padding
+    uint32_t i;
+    for (i=0; i<18; i++)
+        arp->padding[i] = 0;
 }
 
 void sendARP(struct ARP* arp, union IPAddress* ip) {

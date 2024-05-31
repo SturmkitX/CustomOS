@@ -19,6 +19,7 @@ struct ARP
     uint8_t  srcpr[4]; // Source protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
     uint8_t  dsthw[6]; // Destination hardware address - hlen bytes (see above)
     uint8_t  dstpr[4]; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
+    uint8_t  padding[18];   // Padding to get minimum size for Ethernet packets (64 bytes)
 };
 
 struct ARPEntry {

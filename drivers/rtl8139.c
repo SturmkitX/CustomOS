@@ -22,6 +22,7 @@
 #define TSC             0x10
 
 #define RX_BUFFER_SIZE 8192
+#define RX_READ_POINTER_MASK (~3)
 
 uint32_t RTL8139BaseAddress;
 uint8_t RTL8139TXRegOffset;
@@ -83,7 +84,7 @@ uint8_t initializeRTL8139() {
     port_dword_out(RTL8139BaseAddress + 0x30, (uintptr_t)RX_BUFFER_ADDR); // send uint32_t memory location to RBSTART (0x30)
 
     // Allow only TOK and ROK IRQ events
-    port_word_out(RTL8139BaseAddress + 0x3C, 0xFFFF); // Sets the TOK and ROK bits high
+    port_word_out(RTL8139BaseAddress + 0x3C, 0x0005); // Sets the TOK and ROK bits high
 
     // Configure Receiver buffer
     port_dword_out(RTL8139BaseAddress + 0x44, 0xf | (1 << 7)); // (1 << 7) is the WRAP bit, 0xf is AB+AM+APM+AAP
@@ -127,9 +128,11 @@ static void receive_packet() {
             kprint("Received Eth Type: ARP\n");
             struct ARP* arp = (struct ARP*) buff;
             associateMACAddress(arp->srchw);
-            asm("int $0x90");
             kprintf("ARP Reply Opcode: %x\n", arp->opcode);
             kprintf("ARP Reply MAC Addr: %x:%x:%x:%x:%x:%x\n", arp->srchw[0], arp->srchw[1], arp->srchw[2], arp->srchw[3], arp->srchw[4], arp->srchw[5]);
+            break;
+        case 0x0800:
+            kprint("Received Eth Type: IPv4\n");
             break;
         default:
             kprint("Received Eth Type: I don't know\n");
@@ -140,7 +143,7 @@ static void receive_packet() {
     // Should make a copy of the frame
 
     // Update packet offset
-    RTL8139RXOffset = RTL8139RXOffset + frameLen + 4 + 3;
+    RTL8139RXOffset = (RTL8139RXOffset + frameLen + 4 + 3) & RX_READ_POINTER_MASK;
 
     // the buffer has spare bytes after end, so strict inequality can be used
     if (RTL8139RXOffset > RX_BUFFER_SIZE)
@@ -151,9 +154,9 @@ static void receive_packet() {
 }
 
 static void rtl8139_handler(registers_t* regs) {
-    kprint("GOT RTL8139 IRQ!!!!\n");
 	uint16_t status = port_word_in(RTL8139BaseAddress + 0x3e);
 	port_word_out(RTL8139BaseAddress + 0x3E, 0x05);
+    kprintf("GOT RTL8139 IRQ!!!! %x\n", status);
 	if(status & TOK) {
 		// Sent
         kprint("Successfully sent NET packet");
