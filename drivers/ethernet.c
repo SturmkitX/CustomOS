@@ -19,3 +19,11 @@ void constructEthernetBroadcast(struct EthernetFrame* eth) {
         eth->dsthw[i] = 0xFF;
     eth->ethtype = little_to_big_endian_word(0x0806);  // ARP
 }
+
+void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC) {
+    uint32_t i;
+
+    memory_copy(eth->srchw, getMACAddress(), 6);
+    memory_copy(eth->dsthw, destMAC, 6);
+    eth->ethtype = little_to_big_endian_word(0x0806);  // ARP
+}

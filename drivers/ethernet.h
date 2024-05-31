@@ -19,6 +19,7 @@ struct EthernetFrame
 
 uint8_t* getDummyIP();
 void constructEthernetBroadcast(struct EthernetFrame* eth);
+void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC);
 uint8_t* getMACAddress();
 void transmit_packet(void* buffer, uint16_t bufLenth);
 

@@ -5,6 +5,11 @@
 #include "ethernet.h"
 #include "../libc/function.h"
 
+#define ARP_CACHE_MAX_SIZE 128
+
+static struct ARPEntry ArpCache[ARP_CACHE_MAX_SIZE];
+static uint32_t ArpCacheIndex = 0;
+
 struct ARP* constructARP(union IPAddress* addr) {
     struct ARP* arp = (struct ARP*) kmalloc(sizeof(struct ARP));
 
@@ -24,7 +29,29 @@ struct ARP* constructARP(union IPAddress* addr) {
     return arp;
 }
 
-struct ARP* sendARP(struct ARP* arp) {
-    UNUSED(arp);
-    return NULL;
+void sendARP(struct ARP* arp) {
+    transmit_packet(arp, sizeof(struct ARP));
+}
+
+uint8_t* getARPEntry(union IPAddress* addr) {
+    uint32_t i;
+
+    for (i=0; i < ARP_CACHE_MAX_SIZE && ArpCache[i].ip.integerForm != 0; i++) {
+        if (ArpCache[i].ip.integerForm == addr->integerForm)
+            break;
+    }
+
+    if (i >= ARP_CACHE_MAX_SIZE || ArpCache[i].ip.integerForm == 0) {
+        // we reached the end of the list
+        return NULL;
+    }
+
+    // it may get overwritten in time. A copy MUST be made for this
+    return ArpCache[i].mac;
+}
+
+void addARPEntry(union IPAddress* ip, uint8_t* mac) {
+    ArpCache[ArpCacheIndex].ip.integerForm = ip->integerForm;
+    memory_copy(ArpCache[ArpCacheIndex].mac, mac, 6);
+    ArpCacheIndex = (ArpCacheIndex + 1) % ARP_CACHE_MAX_SIZE;
 }

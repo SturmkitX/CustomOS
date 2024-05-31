@@ -21,7 +21,14 @@ struct ARP
     uint8_t  dstpr[4]; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
 };
 
+struct ARPEntry {
+    union IPAddress ip;
+    uint8_t mac[6];
+};
+
 struct ARP* constructARP(union IPAddress* addr);
-struct ARP* sendARP(struct ARP* arp);
+void sendARP(struct ARP* arp);
+uint8_t* getARPEntry(union IPAddress* addr);
+void addARPEntry(union IPAddress* ip, uint8_t* mac);
 
 #endif

@@ -150,11 +150,15 @@ void user_input(char *input) {
         union IPAddress gwAddr;
         gwAddr.integerForm = little_to_big_endian_dword(167772674);     // 10.0.2.2
 
-        struct ARP *arp = constructARP(&gwAddr);
-        kprintf("ARP size: %u\n", sizeof(struct ARP));
-        transmit_packet(arp, sizeof(struct ARP));
+        // uint32_t arpi;
+        // for (arpi=0; arpi < 32; arpi++) {
+            struct ARP *arp = constructARP(&gwAddr);
+            kprintf("ARP size: %u\n", sizeof(struct ARP));
+            transmit_packet(arp, sizeof(struct ARP));
 
-        kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
+            kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
+        // }
+        
     }
     kprint("You said: ");
     kprint(input);
