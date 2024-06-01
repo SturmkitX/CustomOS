@@ -15,6 +15,7 @@
 
 #include "../libc/endian.h"
 #include "../drivers/icmp.h"
+#include "../drivers/udp.h"
 
 static char _k_kbd_buff[256];
 
@@ -177,9 +178,24 @@ void kernel_main() {
             constructICMPEcho(&icmp, &target_ip, 1);
 
             kprintf("ICMP Echo size: %u\n", sizeof(struct ICMPEchoPacket));
-            transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
+            // transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
 
-            kprint("Sent ICMP packet from 10.0.2.15 (us) to 8.8.8.8 (Google DNS)\n");
+            // kprint("Sent ICMP packet from 10.0.2.15 (us) to 8.8.8.8 (Google DNS)\n");
+            
+        } else if (strcmp(_k_kbd_buff, "UDP") == 0) {
+            kprint("Trying to send UDP packet to 192.168.10.123\n");
+            union IPAddress target_ip;
+            // target_ip.integerForm = 3232238081;
+            target_ip.integerForm = 3232238203;
+
+            struct UDPPacket udp;
+            char *udpPayload = "Un mesaj dragut prin UDP.";
+            constructUDPHeader(&udp, &target_ip, 50000, 8080, strlen(udpPayload));
+
+            kprintf("UDP size: %u\n", udp.total_length);
+            sendUDP(&udp, udpPayload, strlen(udpPayload));
+
+            kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.123\n");
             
         }
         kprint("You said: ");
