@@ -23,7 +23,12 @@ struct IPPacket {
 };
 
 uint16_t calculateIPChecksum(struct IPPacket* ipHeader);
-uint16_t calculateHeaderChecksum(struct IPPacket* ipHeader, uint16_t len, uint16_t* buff, uintptr_t checksumAddr);
+uint16_t calculateHeaderChecksum(struct IPPacket* ipHeader);
+
+uint32_t calculateHeaderChecksumPhase1(struct IPPacket* ipHeader);
+uint16_t wrapHeaderChecksum(uint32_t checksum);
 void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protocol, union IPAddress* dstip);
+
+void convertIPPacketEndianness(struct IPPacket* ip);
 
 #endif

@@ -30,4 +30,6 @@ struct ICMPDestinationUnreachablePacket {
 void constructICMPEcho(struct ICMPEchoPacket* icmp, union IPAddress* destip, uint16_t sequence);
 uint16_t calculateICMPEchoChecksum(struct ICMPEchoPacket* icmpHeader);
 
+void convertICMPEchoEndianness(struct ICMPEchoPacket* icmp);
+
 #endif

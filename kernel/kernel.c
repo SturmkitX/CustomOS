@@ -163,6 +163,7 @@ void kernel_main() {
             // for (arpi=0; arpi < 32; arpi++) {
                 constructARP(&arp, &gwAddr);
                 kprintf("ARP size: %u\n", sizeof(struct ARP));
+                convertARPEndianness(&arp);
                 transmit_packet(&arp, sizeof(struct ARP));
 
                 kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
@@ -176,17 +177,18 @@ void kernel_main() {
 
             struct ICMPEchoPacket icmp;
             constructICMPEcho(&icmp, &target_ip, 1);
+            convertICMPEchoEndianness(&icmp);
 
             kprintf("ICMP Echo size: %u\n", sizeof(struct ICMPEchoPacket));
-            // transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
+            transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
 
-            // kprint("Sent ICMP packet from 10.0.2.15 (us) to 8.8.8.8 (Google DNS)\n");
+            kprint("Sent ICMP packet from 10.0.2.15 (us) to 8.8.8.8 (Google DNS)\n");
             
         } else if (strcmp(_k_kbd_buff, "UDP") == 0) {
-            kprint("Trying to send UDP packet to 192.168.10.123\n");
+            kprint("Trying to send UDP packet to 192.168.10.105\n");
             union IPAddress target_ip;
             // target_ip.integerForm = 3232238081;
-            target_ip.integerForm = 3232238203;
+            target_ip.integerForm = 3232238185;
 
             struct UDPPacket udp;
             char *udpPayload = "Un mesaj dragut prin UDP.";
@@ -195,7 +197,7 @@ void kernel_main() {
             kprintf("UDP size: %u\n", udp.total_length);
             sendUDP(&udp, udpPayload, strlen(udpPayload));
 
-            kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.123\n");
+            kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.105\n");
             
         }
         kprint("You said: ");

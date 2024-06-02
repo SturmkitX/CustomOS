@@ -32,4 +32,6 @@ void sendARP(struct ARP* arp, union IPAddress* ip);
 uint8_t* getARPEntry(union IPAddress* addr);
 void associateMACAddress(uint8_t* mac);
 
+void convertARPEndianness(struct ARP* arp);
+
 #endif

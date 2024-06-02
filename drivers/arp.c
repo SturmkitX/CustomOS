@@ -13,19 +13,16 @@ uint32_t ArpCacheIndex = 0;
 void constructARP(struct ARP* arp, union IPAddress* dstaddr) {
     constructEthernetBroadcast(&arp->eth, 0x0806);  // for now, make it a broadcast ARP
 
-    union IPAddress my_ip_be;
-    my_ip_be.integerForm = little_to_big_endian_dword(getIPAddress()->integerForm);
-
-    arp->htype = little_to_big_endian_word(0x1);   // Ethernet
-    arp->ptype = little_to_big_endian_word(0x0800);    // IP
+    arp->htype = 0x1;   // Ethernet
+    arp->ptype = 0x0800;    // IP
     arp->hlen = 6;
     arp->plen = 4;
-    arp->opcode = little_to_big_endian_word(1);    // 1=Request, 2=Reply
+    arp->opcode = 1;    // 1=Request, 2=Reply
     memory_copy(arp->srchw, getMACAddress(), 6);    // should free mac address memory
-    memory_copy(arp->srcpr, my_ip_be.bytes, 4);       // we will emulate IP for now
+    memory_copy(arp->srcpr, getIPAddress()->bytes, 4);       // we will emulate IP for now
 
     // dsthw is ignored in ARP
-    memory_copy(arp->dstpr, ((union IPAddress)(little_to_big_endian_dword(dstaddr->integerForm))).bytes, 4);
+    memory_copy(arp->dstpr, dstaddr->bytes, 4);
 
     // initialize padding
     uint32_t i;
@@ -63,4 +60,19 @@ void associateMACAddress(uint8_t* mac) {
     // should check for invalid MAC addresses (when I will find one)
     memory_copy(ArpCache[ArpCacheIndex].mac, mac, 6);
     ArpCacheIndex++;
+}
+
+void convertARPEndianness(struct ARP* arp) {
+    arp->htype = little_to_big_endian_word(arp->htype);
+    arp->ptype = little_to_big_endian_word(arp->ptype);
+    arp->opcode = little_to_big_endian_word(arp->opcode);
+
+    union IPAddress* srcip = (union IPAddress*)arp->srcpr;
+    union IPAddress* dstip = (union IPAddress*)arp->dstpr;
+
+    memory_copy(arp->srcpr, ((union IPAddress)(little_to_big_endian_dword(srcip->integerForm))).bytes, 4);       // we will emulate IP for now
+    memory_copy(arp->dstpr, ((union IPAddress)(little_to_big_endian_dword(dstip->integerForm))).bytes, 4);
+
+    // also convert downwards
+    convertEthernetFrameEndianness(&arp->eth);
 }

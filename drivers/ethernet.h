@@ -25,4 +25,6 @@ void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC, uint16_
 uint8_t* getMACAddress();
 void transmit_packet(void* buffer, uint16_t bufLenth);
 
+void convertEthernetFrameEndianness(struct EthernetFrame* eth);
+
 #endif

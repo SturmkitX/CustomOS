@@ -26,7 +26,7 @@ void constructEthernetBroadcast(struct EthernetFrame* eth, uint16_t ethtype) {
 
     for (i=0; i < 6; i++)
         eth->dsthw[i] = 0xFF;
-    eth->ethtype = little_to_big_endian_word(ethtype);
+    eth->ethtype = ethtype;
 }
 
 void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC, uint16_t ethtype) {
@@ -34,5 +34,9 @@ void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC, uint16_
 
     memory_copy(eth->srchw, getMACAddress(), 6);
     memory_copy(eth->dsthw, destMAC, 6);
-    eth->ethtype = little_to_big_endian_word(ethtype);
+    eth->ethtype = ethtype;
+}
+
+void convertEthernetFrameEndianness(struct EthernetFrame* eth) {
+    eth->ethtype = little_to_big_endian_word(eth->ethtype);
 }

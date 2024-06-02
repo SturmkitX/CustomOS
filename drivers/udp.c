@@ -10,7 +10,8 @@ void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t
 
     udp->total_length = little_to_big_endian_word(UDP_HEADER_LEN + payloadLength);
 
-    udp->checksum = calculateUDPChecksum(udp);
+    // udp->checksum = calculateUDPChecksum(udp);
+    udp->checksum = 0;  // disable for now
 }
 
 uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader) {
