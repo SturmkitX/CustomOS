@@ -16,6 +16,7 @@
 #include "../libc/endian.h"
 #include "../drivers/icmp.h"
 #include "../drivers/udp.h"
+#include "../drivers/dns.h"
 
 static char _k_kbd_buff[256];
 
@@ -198,6 +199,17 @@ void kernel_main() {
             sendUDP(&udp, udpPayload, strlen(udpPayload));
 
             kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.105\n");
+            
+        } else if (strcmp(_k_kbd_buff, "DNS") == 0) {
+            kprint("Trying to send DNS packet to 192.168.10.1 (built-in)\n");
+
+            struct DNSPacket dns;
+            char *dnsName = "www.facebook.com";
+            constructDNSHeader(&dns, strlen(dnsName));
+
+            sendDNS(&dns, dnsName, strlen(dnsName));
+
+            kprint("Sent DNS packet for www.facebook.com to 192.168.10.1\n");
             
         }
         kprint("You said: ");
