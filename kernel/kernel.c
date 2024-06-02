@@ -192,7 +192,7 @@ void kernel_main() {
 
             struct UDPPacket udp;
             char *udpPayload = "Un mesaj dragut prin UDP.";
-            constructUDPHeader(&udp, &target_ip, 50000, 8080, strlen(udpPayload));
+            constructUDPHeader(&udp, &target_ip, 50000, 8080, udpPayload, strlen(udpPayload));
 
             kprintf("UDP size: %u\n", udp.total_length);
             sendUDP(&udp, udpPayload, strlen(udpPayload));

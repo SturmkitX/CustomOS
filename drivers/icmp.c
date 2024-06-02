@@ -9,19 +9,20 @@ uint16_t calculateICMPEchoChecksum(struct ICMPEchoPacket* icmpHeader) {
     // return calculateHeaderChecksum(icmpHeader, ICMP_HEADER_LEN + strlen(DefaultPayload), (uint16_t*)(&icmpHeader->header.type), &icmpHeader->header.checksum);
     uint32_t sum = 0;
 
-    sum += ((ipHeader->version_header << 8) | ipHeader->tos);
-    sum += ipHeader->total_length;
-    sum += ipHeader->identification;
-    sum += ipHeader->flags_fragment_offset;
-    sum += ((ipHeader->ttl << 8) | ipHeader->tos);
-    
-    sum += ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]);
-    sum += ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]);
+    sum += ((icmpHeader->header.type << 8) | icmpHeader->header.code);
+    sum += icmpHeader->id;
+    sum += icmpHeader->seq;
 
-    sum += ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]);
-    sum += ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0]);
+    // For now, the default 32 bytes long payload is used for ICMP
+    uint32_t i;
+    uint16_t* payloadBuff = (uint16_t*) DefaultPayload;
+    for (i=0; i < strlen(DefaultPayload) / 2; i++) {
+        uint16_t pula = little_to_big_endian_word(payloadBuff[i]);
+        // kprintf("Pula : %x\n", pula);
+        sum += pula;
+    }
 
-    return sum;
+    return wrapHeaderChecksum(sum);
 }
 
 void constructICMPEcho(struct ICMPEchoPacket* icmp, union IPAddress* destip, uint16_t sequence) {

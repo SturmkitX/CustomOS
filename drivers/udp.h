@@ -17,8 +17,10 @@ struct UDPPacket {
     // data is of variable size
 };
 
-void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uint16_t payloadLength);
-uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader);
+void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength);
+uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader, uintptr_t payload, uint16_t payloadLength);
 void sendUDP(struct UDPPacket *udp, uintptr_t buff, uint16_t buffLen);
+
+void convertUDPEndianness(struct UDPPacket* udp);
 
 #endif

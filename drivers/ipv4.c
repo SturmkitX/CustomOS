@@ -17,13 +17,25 @@ uint32_t calculateIPHeaderChecksumPhase1(struct IPPacket* ipHeader) {
     sum += ipHeader->total_length;
     sum += ipHeader->identification;
     sum += ipHeader->flags_fragment_offset;
-    sum += ((ipHeader->ttl << 8) | ipHeader->tos);
+    sum += ((ipHeader->ttl << 8) | ipHeader->protocol);
     
     sum += ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]);
     sum += ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]);
 
     sum += ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]);
     sum += ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0]);
+
+    kprintf("IPv4 Check Partial sum: %x. Members:\n", sum);
+    kprintf("%x %x %x %x %x %x %x %x %x\n", ((ipHeader->version_header << 8) | ipHeader->tos),
+        ipHeader->total_length,
+        ipHeader->identification,
+        ipHeader->flags_fragment_offset,
+        ((ipHeader->ttl << 8) | ipHeader->protocol),
+        ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]),
+        ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]),
+        ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]),
+        ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0])
+    );
 
     return sum;
 }
@@ -42,7 +54,7 @@ uint16_t calculateIPHeaderChecksum(struct IPPacket* ipHeader) {
 }
 
 uint16_t calculateIPChecksum(struct IPPacket* ipHeader) {
-    return calculateHeaderChecksum(ipHeader);
+    return calculateIPHeaderChecksum(ipHeader);
 }
 
 void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protocol, union IPAddress* dstip) {
