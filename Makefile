@@ -9,8 +9,8 @@ GDB = i686-elf-gdb
 # -g: Use debugging symbols in gcc
 CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
 
-#DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
-DDPATH = dd
+DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
+#DDPATH = dd
 
 all: boot/bootsect.bin kernel.bin stage2.bin
 	${DDPATH} conv=notrunc if=/dev/zero of=hdd1-raw2.img bs=1b count=127

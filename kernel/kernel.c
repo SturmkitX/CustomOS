@@ -17,6 +17,7 @@
 #include "../drivers/icmp.h"
 #include "../drivers/udp.h"
 #include "../drivers/dns.h"
+#include "../drivers/tcp.h"
 
 static char _k_kbd_buff[256];
 
@@ -211,6 +212,20 @@ void kernel_main() {
 
             kprint("Sent DNS packet for www.facebook.com to 192.168.10.1\n");
             
+        } else if (strcmp(_k_kbd_buff, "TCP") == 0) {
+            kprint("Trying to send TCP packet to 192.168.10.1\n");
+            union IPAddress target_ip;
+            // target_ip.integerForm = 3232238081;
+            target_ip.integerForm = 3232238081;
+
+            struct TCPPacket tcp;
+            // char *tcpPayload = "Un mesaj dragut prin UDP.";
+            constructTCPHeader(&tcp, &target_ip, 50002, 80, NULL, 0, 1);
+
+            // kprintf("UDP size: %u\n", udp.total_length);
+            sendTCP(&tcp, NULL, 0);
+
+            kprint("Sent TCP packet from 10.0.2.15 (us) to 192.168.10.1\n");
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

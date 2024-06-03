@@ -20,7 +20,7 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
     curname[0] = 0;
     char* dnsEntry = (char*) payload;
 
-    uint32_t i;
+    uint32_t i, no_label = 0;
     uintptr_t dnsEndP = dnsEnd;
     for (i=0; i < payloadLength; i++) {
         if (dnsEntry[i] != '.') {
@@ -31,6 +31,7 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
             memory_copy(dnsEndP + 1, curname, strlen(curname));
             dnsEndP += (strlen(curname) + 1);
             curname[0] = '\0';
+            no_label++;
         }
     }
     kprintf("Found label: %s\n", curname);
@@ -38,10 +39,12 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
     memory_copy(dnsEndP + 1, curname, strlen(curname));
     dnsEndP += (strlen(curname) + 1);
     curname[0] = '\0';
+    no_label += 2;  // mark final 0 label
     // memory_copy(dnsEnd, payload, payloadLength);
+    *(uint8_t*)(dnsEndP) = 0;   // mark end of labels
 
     // jump over payload zone for now
-    uint16_t* queryParams = (uint16_t*)dnsEndP;
+    uint16_t* queryParams = (uint16_t*)(dnsEndP + 1);
     *queryParams = 1;           // Query type (A)
     *(queryParams + 1) = 1;     // Class IN
 
@@ -49,7 +52,7 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
     union IPAddress dnssrv;
     dnssrv.integerForm = 3232238081;
 
-    constructUDPHeader(&dns->udp, &dnssrv, 50001, 53, &dns->id, sizeof(struct DNSPacket) - sizeof(struct UDPPacket) + payloadLength + 4);
+    constructUDPHeader(&dns->udp, &dnssrv, 50001, 53, &dns->id, sizeof(struct DNSPacket) - sizeof(struct UDPPacket) + payloadLength + 4 + no_label);
 }
 
 void sendDNS(struct DNSPacket* dns, char* name, uint16_t payloadLength) {
@@ -57,7 +60,7 @@ void sendDNS(struct DNSPacket* dns, char* name, uint16_t payloadLength) {
 
     convertDNSEndianness(dns, payloadLength);
 
-    transmit_packet(dns, sizeof(struct DNSPacket) + payloadLength + 4);
+    transmit_packet(dns, sizeof(struct DNSPacket) + payloadLength + 4 + 4); // we have 4 labels, MUST compute this somehow
 }
 
 void convertDNSEndianness(struct DNSPacket* dns, uint16_t payloadLength) {
