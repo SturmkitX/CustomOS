@@ -205,7 +205,7 @@ void kernel_main() {
 
             struct DNSPacket dns;
             char *dnsName = "www.facebook.com";
-            constructDNSHeader(&dns, strlen(dnsName));
+            constructDNSHeader(&dns, dnsName, strlen(dnsName));
 
             sendDNS(&dns, dnsName, strlen(dnsName));
 

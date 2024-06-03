@@ -19,7 +19,7 @@ struct DNSPacket {
     uint16_t no_additional_rr;  // set by server
 };
 
-void constructDNSHeader(struct DNSPacket* dns, uint16_t payloadLength);
+void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t payloadLength);
 void sendDNS(struct DNSPacket* dns, char* name, uint16_t payloadLength);
 
 void convertDNSEndianness(struct DNSPacket* dns, uint16_t payloadLength);
