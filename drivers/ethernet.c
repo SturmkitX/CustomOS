@@ -46,3 +46,11 @@ void generateEthernetFrameBytes(struct EthernetFrame* eth, uintptr_t buffer) {
     memory_copy(buffer + 6, eth->srchw, 6);
     *(uint16_t*)(buffer + 12) = little_to_big_endian_word(eth->ethtype);
 }
+
+uintptr_t parseEthernetFrame(uintptr_t buffer, struct EthernetFrame* eth) {
+    memory_copy(eth->dsthw, buffer, 6);
+    memory_copy(eth->srchw, buffer + 6, 6);
+    eth->ethtype = big_to_little_endian_word(*(uint16_t*)(buffer + 12));
+
+    return (buffer + ETHERNET_HEADER_LEN);
+}

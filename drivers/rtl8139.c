@@ -8,6 +8,7 @@
 
 #include "../libc/endian.h"
 #include "arp.h"
+#include "tcp.h"
 
 #define TOK 0x4
 #define ROK 0x1
@@ -121,6 +122,9 @@ static void receive_packet() {
 
     buff += 4;
 
+    // Parse the results
+    struct EthernetFrame eth;
+    uintptr_t remainingBuff = parseEthernetFrame(buff, &eth);
     uint16_t ethType = big_to_little_endian_word(((struct EthernetFrame*)(buff))->ethtype);
 
     switch (ethType) {

@@ -93,7 +93,7 @@ void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protoc
         // request the MAC address
         struct ARP arp;
         constructARP(&arp, ip_to_send);
-        convertARPEndianness(&arp);
+        // convertARPEndianness(&arp);
         sendARP(&arp, ip_to_send);
 
         kprint("Sent First ARP\n");

@@ -16,9 +16,9 @@ struct ARP
     uint8_t  plen; // Protocol address length (IPv4 = 4)
     uint16_t opcode; // ARP Operation Code
     uint8_t  srchw[6]; // Source hardware address - hlen bytes (see above)
-    uint8_t  srcpr[4]; // Source protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
+    union IPAddress  srcpr; // Source protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
     uint8_t  dsthw[6]; // Destination hardware address - hlen bytes (see above)
-    uint8_t  dstpr[4]; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
+    union IPAddress  dstpr; // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
     uint8_t  padding[18];   // Padding to get minimum size for Ethernet packets (64 bytes)
 };
 
@@ -33,5 +33,6 @@ uint8_t* getARPEntry(union IPAddress* addr);
 void associateMACAddress(uint8_t* mac);
 
 void convertARPEndianness(struct ARP* arp);
+void generateARPHeaderBytes(struct ARP* arp, uintptr_t buffer);
 
 #endif

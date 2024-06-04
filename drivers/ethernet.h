@@ -29,5 +29,6 @@ void transmit_packet(void* buffer, uint16_t bufLenth);
 
 void convertEthernetFrameEndianness(struct EthernetFrame* eth);
 void generateEthernetFrameBytes(struct EthernetFrame* eth, uintptr_t buffer);
+uintptr_t parseEthernetFrame(uintptr_t buff, struct EthernetFrame* eth);
 
 #endif

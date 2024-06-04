@@ -19,10 +19,10 @@ void constructARP(struct ARP* arp, union IPAddress* dstaddr) {
     arp->plen = 4;
     arp->opcode = 1;    // 1=Request, 2=Reply
     memory_copy(arp->srchw, getMACAddress(), 6);    // should free mac address memory
-    memory_copy(arp->srcpr, getIPAddress()->bytes, 4);       // we will emulate IP for now
+    arp->srcpr.integerForm = getIPAddress()->integerForm;       // we will use a static IP for now
 
     // dsthw is ignored in ARP
-    memory_copy(arp->dstpr, dstaddr->bytes, 4);
+    arp->dstpr.integerForm = dstaddr->integerForm;
 
     // initialize padding
     uint32_t i;
@@ -33,7 +33,10 @@ void constructARP(struct ARP* arp, union IPAddress* dstaddr) {
 void sendARP(struct ARP* arp, union IPAddress* ip) {
     ArpCache[ArpCacheIndex].ip.integerForm = ip->integerForm;
 
-    transmit_packet(arp, sizeof(struct ARP));
+    uint8_t arpBytes[64];
+    generateARPHeaderBytes(arp, arpBytes);
+
+    transmit_packet(arpBytes, 60);  // we kinda have a fixed size of 60 bytes
     // the next ARP reply will be associated with this one (since the original IP is lost during transmission)
     // Index will be incremented after saving the mac (if found)
 }
@@ -67,12 +70,25 @@ void convertARPEndianness(struct ARP* arp) {
     arp->ptype = little_to_big_endian_word(arp->ptype);
     arp->opcode = little_to_big_endian_word(arp->opcode);
 
-    union IPAddress* srcip = (union IPAddress*)arp->srcpr;
-    union IPAddress* dstip = (union IPAddress*)arp->dstpr;
-
-    memory_copy(arp->srcpr, ((union IPAddress)(little_to_big_endian_dword(srcip->integerForm))).bytes, 4);       // we will emulate IP for now
-    memory_copy(arp->dstpr, ((union IPAddress)(little_to_big_endian_dword(dstip->integerForm))).bytes, 4);
+    arp->srcpr.integerForm = little_to_big_endian_dword(arp->srcpr.integerForm);       // we will emulate IP for now
+    arp->dstpr.integerForm = little_to_big_endian_dword(arp->dstpr.integerForm);
 
     // also convert downwards
     convertEthernetFrameEndianness(&arp->eth);
+}
+
+void generateARPHeaderBytes(struct ARP* arp, uintptr_t buffer) {
+    generateEthernetFrameBytes(&arp->eth, buffer);
+    uintptr_t bufferARP = (uintptr_t)(buffer + ETHERNET_HEADER_LEN);
+
+    *(uint16_t*)(bufferARP) = little_to_big_endian_word(arp->htype); // Hardware type
+    *(uint16_t*)(bufferARP + 2) = little_to_big_endian_word(arp->ptype); // Protocol type
+    *(uint8_t*)(bufferARP + 4) = arp->hlen; // Hardware address length (Ethernet = 6)
+    *(uint8_t*)(bufferARP + 5) = arp->plen; // Protocol address length (IPv4 = 4)
+    *(uint16_t*)(bufferARP + 6) = little_to_big_endian_word(arp->opcode); // ARP Operation Code
+    memory_copy(bufferARP + 8, arp->srchw, 6); // Source hardware address - hlen bytes (see above)
+    *(uint32_t*)(bufferARP + 14) = little_to_big_endian_dword(arp->srcpr.integerForm); // Source protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
+    memory_copy(bufferARP + 18, arp->dsthw, 6); // Destination hardware address - hlen bytes (see above)
+    *(uint32_t*)(bufferARP + 24) = little_to_big_endian_dword(arp->dstpr.integerForm); // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
+    memory_copy(bufferARP + 28, arp->padding, 18);   // Padding to get minimum size for Ethernet packets (64 bytes)
 }

@@ -45,5 +45,7 @@ void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen);
 void convertTCPEndianness(struct TCPPacket* tcp);
 void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer);
 uint16_t getTCPPacketSize(struct TCPPacket* tcp);
+// struct TCPPacket* pollTCP(uint16_t port);
+// void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
 
 #endif
