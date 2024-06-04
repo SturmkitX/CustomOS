@@ -14,7 +14,13 @@
 #define TCP_FLAG_CWR    (1 << 7)    // Congestion Window Reduced
 #define TCP_FLAG_AECN   (1 << 8)
 
-#define TCP_HEADER_LEN  20  // 20 bytes basic header (other options will be added separately)
+#define MSS_KIND    2
+#define MSS_LENGTH  4
+#define NOP_KIND    1
+#define SACK_KIND   4
+#define SACK_LENGTH 2
+
+#define TCP_HEADER_LEN  28  // 20 bytes basic header (other options will be added separately)
 
 struct TCPPacket {
     struct IPPacket ip;
@@ -26,10 +32,7 @@ struct TCPPacket {
     uint16_t window;
     uint16_t checksum;
     uint16_t urgent_ptr;
-    // uint32_t options;   // variable length options + padding
-    // will only use MSS for now to limit packet size, will implement the rest when I create some more user-friendly structures and better way of handling rx/tx
-    uint8_t msskey;     // temporary control keys
-    uint8_t msslength;
+
     uint16_t mss;   // Max segment size
 
     // payload comes here
@@ -40,5 +43,7 @@ uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, ui
 void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen);
 
 void convertTCPEndianness(struct TCPPacket* tcp);
+void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer);
+uint16_t getTCPPacketSize(struct TCPPacket* tcp);
 
 #endif

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define ETHERNET_HEADER_LEN     14
+
 // Note that Ethernet and all subsequent protocols use Big Endian
 
 union IPAddress {
@@ -26,5 +28,6 @@ uint8_t* getMACAddress();
 void transmit_packet(void* buffer, uint16_t bufLenth);
 
 void convertEthernetFrameEndianness(struct EthernetFrame* eth);
+void generateEthernetFrameBytes(struct EthernetFrame* eth, uintptr_t buffer);
 
 #endif

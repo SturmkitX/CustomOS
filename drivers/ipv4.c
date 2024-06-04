@@ -19,23 +19,23 @@ uint32_t calculateIPHeaderChecksumPhase1(struct IPPacket* ipHeader) {
     sum += ipHeader->flags_fragment_offset;
     sum += ((ipHeader->ttl << 8) | ipHeader->protocol);
     
-    sum += ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]);
-    sum += ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]);
+    sum += (ipHeader->srcip.integerForm >> 16);
+    sum += (ipHeader->srcip.integerForm & 0xFFFF);
 
-    sum += ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]);
-    sum += ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0]);
+    sum += (ipHeader->dstip.integerForm >> 16);
+    sum += (ipHeader->dstip.integerForm & 0xFFFF);
 
-    kprintf("IPv4 Check Partial sum: %x. Members:\n", sum);
-    kprintf("%x %x %x %x %x %x %x %x %x\n", ((ipHeader->version_header << 8) | ipHeader->tos),
-        ipHeader->total_length,
-        ipHeader->identification,
-        ipHeader->flags_fragment_offset,
-        ((ipHeader->ttl << 8) | ipHeader->protocol),
-        ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]),
-        ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]),
-        ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]),
-        ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0])
-    );
+    // kprintf("IPv4 Check Partial sum: %x. Members:\n", sum);
+    // kprintf("%x %x %x %x %x %x %x %x %x\n", ((ipHeader->version_header << 8) | ipHeader->tos),
+    //     ipHeader->total_length,
+    //     ipHeader->identification,
+    //     ipHeader->flags_fragment_offset,
+    //     ((ipHeader->ttl << 8) | ipHeader->protocol),
+    //     ((ipHeader->srcip[3] << 8) | ipHeader->srcip[2]),
+    //     ((ipHeader->srcip[1] << 8) | ipHeader->srcip[0]),
+    //     ((ipHeader->dstip[3] << 8) | ipHeader->dstip[2]),
+    //     ((ipHeader->dstip[1] << 8) | ipHeader->dstip[0])
+    // );
 
     return sum;
 }
@@ -66,8 +66,8 @@ void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protoc
     ip->ttl = 128;  // It's ok for now
     ip->protocol = protocol;
 
-    memory_copy(ip->srcip, getIPAddress()->bytes, 4);
-    memory_copy(ip->dstip, dstip->bytes, 4);
+    ip->srcip.integerForm = getIPAddress()->integerForm;
+    ip->dstip.integerForm = dstip->integerForm;
 
     ip->header_checksum = calculateIPChecksum(ip);
 
@@ -112,13 +112,26 @@ void convertIPPacketEndianness(struct IPPacket* ip) {
     ip->total_length = little_to_big_endian_word(ip->total_length);
     ip->identification = little_to_big_endian_word(ip->identification);
 
-    union IPAddress* srcip = (union IPAddress*)ip->srcip;
-    union IPAddress* dstip = (union IPAddress*)ip->dstip;
-
-    memory_copy(ip->srcip, ((union IPAddress)(little_to_big_endian_dword(srcip->integerForm))).bytes, 4);
-    memory_copy(ip->dstip, ((union IPAddress)(little_to_big_endian_dword(dstip->integerForm))).bytes, 4);
+    ip->srcip.integerForm = little_to_big_endian_dword(ip->srcip.integerForm);
+    ip->dstip.integerForm = little_to_big_endian_dword(ip->dstip.integerForm);
 
     ip->header_checksum = little_to_big_endian_word(ip->header_checksum);
 
     convertEthernetFrameEndianness(&ip->eth);
+}
+
+void generateIPHeaderBytes(struct IPPacket* ip, uintptr_t buffer) {
+    generateEthernetFrameBytes(&ip->eth, buffer);
+    uintptr_t bufferIP = (uintptr_t)(buffer + ETHERNET_HEADER_LEN);
+
+    *(uint8_t*)bufferIP = ip->version_header;
+    *(uint8_t*)(bufferIP + 1) = ip->tos;
+    *(uint16_t*)(bufferIP + 2) = little_to_big_endian_word(ip->total_length);  // Header + Payload
+    *(uint16_t*)(bufferIP + 4) = little_to_big_endian_word(ip->identification);
+    *(uint16_t*)(bufferIP + 6) = little_to_big_endian_word(ip->flags_fragment_offset);
+    *(uint8_t*)(bufferIP + 8) = ip->ttl;
+    *(uint8_t*)(bufferIP + 9) = ip->protocol;
+    *(uint16_t*)(bufferIP + 10) = little_to_big_endian_word(ip->header_checksum);
+    *(uint32_t*)(bufferIP + 12) = little_to_big_endian_dword(ip->srcip.integerForm);
+    *(uint32_t*)(bufferIP + 16) = little_to_big_endian_dword(ip->dstip.integerForm);
 }

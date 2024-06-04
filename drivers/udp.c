@@ -17,17 +17,14 @@ void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t
 }
 
 uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader, uintptr_t payload, uint16_t payloadLength) {
-    union IPAddress* srcip = (union IPAddress*)udpHeader->ip.srcip;
-    union IPAddress* dstip = (union IPAddress*)udpHeader->ip.dstip;
-
     // 1. Add up pseudo header (Src IP + Dst IP + IP protocol + UDP Length)
     uint32_t sum = 0;
-    sum += (srcip->integerForm >> 16);
-    sum += (srcip->integerForm & 0xFFFF);
+    sum += (udpHeader->ip.srcip.integerForm >> 16);
+    sum += (udpHeader->ip.srcip.integerForm & 0xFFFF);
 
 
-    sum += (dstip->integerForm >> 16);
-    sum += (dstip->integerForm & 0xFFFF);
+    sum += (udpHeader->ip.dstip.integerForm >> 16);
+    sum += (udpHeader->ip.dstip.integerForm & 0xFFFF);
 
     sum += udpHeader->total_length;
     sum += udpHeader->ip.protocol;

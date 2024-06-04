@@ -40,3 +40,9 @@ void constructEthernetFrame(struct EthernetFrame* eth, uint8_t* destMAC, uint16_
 void convertEthernetFrameEndianness(struct EthernetFrame* eth) {
     eth->ethtype = little_to_big_endian_word(eth->ethtype);
 }
+
+void generateEthernetFrameBytes(struct EthernetFrame* eth, uintptr_t buffer) {
+    memory_copy(buffer, eth->dsthw, 6);
+    memory_copy(buffer + 6, eth->srchw, 6);
+    *(uint16_t*)(buffer + 12) = little_to_big_endian_word(eth->ethtype);
+}

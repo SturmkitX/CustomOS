@@ -16,8 +16,8 @@ struct IPPacket {
     uint8_t ttl;
     uint8_t protocol;
     uint16_t header_checksum;
-    uint8_t srcip[4];
-    uint8_t dstip[4];
+    union IPAddress srcip;
+    union IPAddress dstip;
 
     // options, variable length
 };
@@ -30,5 +30,6 @@ uint16_t wrapHeaderChecksum(uint32_t checksum);
 void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protocol, union IPAddress* dstip);
 
 void convertIPPacketEndianness(struct IPPacket* ip);
+void generateIPHeaderBytes(struct IPPacket* ip, uintptr_t buffer);
 
 #endif
