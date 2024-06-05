@@ -6,6 +6,8 @@
 
 // Note that Ethernet and all subsequent protocols use Big Endian
 
+#define ARP_HEADER_LEN  46
+
 
 struct ARP
 {
@@ -34,5 +36,6 @@ void associateMACAddress(uint8_t* mac);
 
 void convertARPEndianness(struct ARP* arp);
 void generateARPHeaderBytes(struct ARP* arp, uintptr_t buffer);
+uintptr_t parseARPHeader(uintptr_t buffer, struct ARP* arp);
 
 #endif

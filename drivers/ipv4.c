@@ -135,3 +135,18 @@ void generateIPHeaderBytes(struct IPPacket* ip, uintptr_t buffer) {
     *(uint32_t*)(bufferIP + 12) = little_to_big_endian_dword(ip->srcip.integerForm);
     *(uint32_t*)(bufferIP + 16) = little_to_big_endian_dword(ip->dstip.integerForm);
 }
+
+uintptr_t parseIPHeader(uintptr_t buffer, struct IPPacket* ip) {
+    ip->version_header = *(uint8_t*)buffer;
+    ip->tos = *(uint8_t*)(buffer + 1);
+    ip->total_length = big_to_little_endian_word(*(uint16_t*)(buffer + 2));  // Header + Payload
+    ip->identification = big_to_little_endian_word(*(uint16_t*)(buffer + 4));
+    ip->flags_fragment_offset = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
+    ip->ttl = *(uint8_t*)(buffer + 8);
+    ip->protocol = *(uint8_t*)(buffer + 9);
+    ip->header_checksum = big_to_little_endian_word(*(uint16_t*)(buffer + 10));
+    ip->srcip.integerForm = big_to_little_endian_dword(*(uint32_t*)(buffer + 12));
+    ip->dstip.integerForm = big_to_little_endian_dword(*(uint32_t*)(buffer + 16));
+
+    return (buffer + IP_HEADER_LEN);
+}

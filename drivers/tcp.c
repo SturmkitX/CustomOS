@@ -74,11 +74,6 @@ uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, ui
 }
 
 void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen) {
-    // convertTCPEndianness(tcp);
-
-    // kprintf("Ethernet Frame len: %u\n", sizeof(struct EthernetFrame));
-    // kprintf("IP Packet len: %u\n", sizeof(struct IPPacket));
-    // kprintf("TCP Packet len: %u\n", sizeof(struct TCPPacket));
     uint8_t tcpBytes[1512];     // for now, set it to mtu size
     generateTCPHeaderBytes(tcp, tcpBytes);
     uint16_t tcpSize = getTCPPacketSize(tcp);
@@ -129,4 +124,23 @@ void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer) {
 
 uint16_t getTCPPacketSize(struct TCPPacket* tcp) {
     return (tcp->ip.total_length + ETHERNET_HEADER_LEN);
+}
+
+uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp) {
+    tcp->srcport = big_to_little_endian_word(*(uint16_t*)(buffer));
+    tcp->dstport = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
+    tcp->seq = big_to_little_endian_dword(*(uint32_t*)(buffer + 4));
+    tcp->ack = big_to_little_endian_dword(*(uint32_t*)(buffer + 8));
+    tcp->offset_and_flags = big_to_little_endian_word(*(uint16_t*)(buffer + 12));
+    tcp->window = big_to_little_endian_word(*(uint16_t*)(buffer + 14));
+    tcp->checksum = big_to_little_endian_word(*(uint16_t*)(buffer + 16));
+    tcp->urgent_ptr = big_to_little_endian_word(*(uint16_t*)(buffer + 18));
+
+    tcp->mss = big_to_little_endian_word(*(uint16_t*)(buffer + 22));   // Max segment size
+
+    uint16_t payloadSize = tcp->ip.total_length - IP_HEADER_LEN - TCP_HEADER_LEN;
+    uintptr_t payloadBuff = (uintptr_t)kmalloc(payloadSize);
+    memory_copy(payloadBuff, buffer + 28, payloadSize);
+
+    return (buffer + TCP_HEADER_LEN + payloadSize);
 }

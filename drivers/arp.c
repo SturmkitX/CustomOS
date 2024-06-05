@@ -92,3 +92,20 @@ void generateARPHeaderBytes(struct ARP* arp, uintptr_t buffer) {
     *(uint32_t*)(bufferARP + 24) = little_to_big_endian_dword(arp->dstpr.integerForm); // Destination protocol address - plen bytes (see above). If IPv4 can just be a "u32" type.
     memory_copy(bufferARP + 28, arp->padding, 18);   // Padding to get minimum size for Ethernet packets (64 bytes)
 }
+
+
+uintptr_t parseARPHeader(uintptr_t buffer, struct ARP* arp) {
+    // Ethernet is already constructed
+    arp->htype = big_to_little_endian_word(*(uint16_t*)(buffer));
+    arp->ptype = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
+    arp->hlen = *(uint8_t*)(buffer + 4);
+    arp->plen = *(uint8_t*)(buffer + 5);
+    arp->opcode = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
+    memory_copy(arp->srchw, buffer + 8, 6);
+    arp->srcpr.integerForm = big_to_little_endian_dword(*(uint32_t*)(buffer + 14));
+    memory_copy(arp->dsthw, buffer + 18, 6);
+    arp->dstpr.integerForm = big_to_little_endian_dword(*(uint32_t*)(buffer + 24));
+    memory_copy(arp->padding, buffer + 28, 18);
+
+    return (buffer + ARP_HEADER_LEN);
+}

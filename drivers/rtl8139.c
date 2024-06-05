@@ -125,18 +125,30 @@ static void receive_packet() {
     // Parse the results
     struct EthernetFrame eth;
     uintptr_t remainingBuff = parseEthernetFrame(buff, &eth);
-    uint16_t ethType = big_to_little_endian_word(((struct EthernetFrame*)(buff))->ethtype);
+    // uint16_t ethType = big_to_little_endian_word(((struct EthernetFrame*)(buff))->ethtype);
 
-    switch (ethType) {
+    switch (eth.ethtype) {
         case 0x0806:
             kprint("Received Eth Type: ARP\n");
-            struct ARP* arp = (struct ARP*) buff;
-            associateMACAddress(arp->srchw);
-            kprintf("ARP Reply Opcode: %x\n", arp->opcode);
-            kprintf("ARP Reply MAC Addr: %x:%x:%x:%x:%x:%x\n", arp->srchw[0], arp->srchw[1], arp->srchw[2], arp->srchw[3], arp->srchw[4], arp->srchw[5]);
+            struct ARP arp;
+            memory_copy(&arp.eth, &eth, sizeof(eth));
+            remainingBuff = parseARPHeader(remainingBuff, &arp);
+            associateMACAddress(arp.srchw);
+            kprintf("ARP Reply Opcode: %x\n", arp.opcode);
+            kprintf("ARP Reply MAC Addr: %x:%x:%x:%x:%x:%x\n", arp.srchw[0], arp.srchw[1], arp.srchw[2], arp.srchw[3], arp.srchw[4], arp.srchw[5]);
             break;
         case 0x0800:
-            kprint("Received Eth Type: IPv4\n");
+            kprint("Received IPv4 packet\n");
+            struct IPPacket ip;
+            memory_copy(&ip.eth, &eth, sizeof(eth));
+            remainingBuff = parseIPHeader(remainingBuff, &ip);
+            if (ip.protocol == 6) {
+                kprint("Got TCP Packet\n");
+                struct TCPPacket tcp;
+                memory_copy(&tcp.ip, &ip, sizeof(ip));
+                remainingBuff = parseTCPPacket(remainingBuff, &tcp);
+                kprintf("TCP Receive port: %u\n", tcp.dstport);
+            }
             break;
         default:
             kprint("Received Eth Type: I don't know\n");

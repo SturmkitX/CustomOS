@@ -35,7 +35,7 @@ struct TCPPacket {
 
     uint16_t mss;   // Max segment size
 
-    // payload comes here
+    uintptr_t payload;
 };
 
 void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn);
@@ -45,6 +45,7 @@ void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen);
 void convertTCPEndianness(struct TCPPacket* tcp);
 void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer);
 uint16_t getTCPPacketSize(struct TCPPacket* tcp);
+uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp);
 // struct TCPPacket* pollTCP(uint16_t port);
 // void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
 

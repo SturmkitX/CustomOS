@@ -163,10 +163,10 @@ void kernel_main() {
 
             // uint32_t arpi;
             // for (arpi=0; arpi < 32; arpi++) {
-                constructARP(&arp, &gwAddr);
-                kprintf("ARP size: %u\n", sizeof(struct ARP));
-                convertARPEndianness(&arp);
-                transmit_packet(&arp, sizeof(struct ARP));
+                // constructARP(&arp, &gwAddr);
+                // kprintf("ARP size: %u\n", sizeof(struct ARP));
+                // convertARPEndianness(&arp);
+                // transmit_packet(&arp, sizeof(struct ARP));
 
                 kprint("Sent ARP packet from 10.0.2.15 (us) to 10.0.2.2 (Gateway)\n");
             // }
