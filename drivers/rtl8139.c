@@ -148,6 +148,7 @@ static void receive_packet() {
                 memory_copy(&tcp.ip, &ip, sizeof(ip));
                 remainingBuff = parseTCPPacket(remainingBuff, &tcp);
                 kprintf("TCP Receive port: %u\n", tcp.dstport);
+                addTCPPacket(tcp.dstport, &tcp);
             }
             break;
         default:

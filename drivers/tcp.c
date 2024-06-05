@@ -5,14 +5,18 @@
 #include "../libc/mem.h"
 #include "../libc/endian.h"
 
-void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn) {
-    uint16_t totalTCPLen = TCP_HEADER_LEN + payloadLength;
+struct TCPEntry* _tcp_entries[(1 << 16)];
+static uint32_t _current_seq = 1001;
+static uint32_t _current_ack = 0;
+
+void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn, uint8_t isAck) {
+    uint16_t totalTCPLen = TCP_HEADER_LEN + payloadLength - 8 * !isSyn;
     tcp->srcport = srcport;
     tcp->dstport = dstport;
 
-    tcp->seq = 1001;
-    tcp->ack = 0;
-    tcp->offset_and_flags = (uint16_t)((totalTCPLen << 10) | (isSyn ? TCP_FLAG_SYN : 0));
+    tcp->seq = _current_seq++;
+    tcp->ack = _current_ack++;
+    tcp->offset_and_flags = (uint16_t)((totalTCPLen << 10) | (isAck ? TCP_FLAG_ACK : 0) | (isSyn ? TCP_FLAG_SYN : 0));
     tcp->window = 512;  // set Window at 512 bytes
     tcp->urgent_ptr = 0;
     tcp->mss = 1400;    // set Max segment size to 1400
@@ -23,10 +27,10 @@ void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t
     // also need to add IP header
     constructIPPacket(&tcp->ip, totalTCPLen, 6, destip);   // variable length TCP, Protocol 6
 
-    tcp->checksum = calculateTCPChecksum(tcp, payload, payloadLength);
+    tcp->checksum = calculateTCPChecksum(tcp, payload, payloadLength, isSyn);
 }
 
-uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, uint16_t payloadLength) {
+uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn) {
     // 1. Add up pseudo header (Src IP + Dst IP + IP protocol + TCP Length)
     uint32_t sum = 0;
     sum += (tcpHeader->ip.srcip.integerForm >> 16);
@@ -51,10 +55,13 @@ uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, ui
     sum += tcpHeader->urgent_ptr;
 
     // no need to add MSS (I believe)
-    sum += ((MSS_KIND << 8) | MSS_LENGTH);
-    sum += tcpHeader->mss;
-    sum += ((NOP_KIND << 8) | NOP_KIND);
-    sum += ((SACK_KIND << 8) | SACK_LENGTH);
+    if (isSyn == 1) {
+        sum += ((MSS_KIND << 8) | MSS_LENGTH);
+        sum += tcpHeader->mss;
+        sum += ((NOP_KIND << 8) | NOP_KIND);
+        sum += ((SACK_KIND << 8) | SACK_LENGTH);
+    }
+    
 
     // 3. Add up payload, if present
     if (payload != NULL && payloadLength > 0) {
@@ -142,5 +149,30 @@ uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp) {
     uintptr_t payloadBuff = (uintptr_t)kmalloc(payloadSize);
     memory_copy(payloadBuff, buffer + 28, payloadSize);
 
+    tcp->payload = payloadBuff;
+
     return (buffer + TCP_HEADER_LEN + payloadSize);
+}
+
+struct TCPPacket* pollTCP(uint16_t port) {
+    if (_tcp_entries[port] == NULL)
+        return NULL;
+    
+    struct TCPEntry* entry = _tcp_entries[port];
+    if (entry->current_ptr == entry->size)
+        return NULL;
+
+    return &entry->tcp[entry->current_ptr++];
+}
+
+void addTCPPacket(uint16_t port, struct TCPPacket* tcp) {
+    if (_tcp_entries[port] == NULL) {
+        kprintf("Creating Entries for TCP Port: %u\n", port);
+        _tcp_entries[port] = (struct TCPEntry*) kmalloc(sizeof(struct TCPEntry));
+        _tcp_entries[port]->size = 0;
+        _tcp_entries[port]->current_ptr = 0;
+    }
+
+    struct TCPEntry* entry = _tcp_entries[port];
+    memory_copy(&entry->tcp[entry->size++], tcp, sizeof(struct TCPPacket));     // the object is already allocated in memory
 }

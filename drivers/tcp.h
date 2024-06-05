@@ -22,6 +22,8 @@
 
 #define TCP_HEADER_LEN  28  // 20 bytes basic header (other options will be added separately)
 
+#define TCP_ENTRY_MAX_SIZE 256
+
 struct TCPPacket {
     struct IPPacket ip;
     uint16_t srcport;
@@ -38,15 +40,21 @@ struct TCPPacket {
     uintptr_t payload;
 };
 
-void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn);
-uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, uint16_t payloadLength);
+struct TCPEntry {
+    struct TCPPacket tcp[TCP_ENTRY_MAX_SIZE];
+    uint16_t size;
+    uint16_t current_ptr;
+};
+
+void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn, uint8_t isAck);
+uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn);
 void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen);
 
 void convertTCPEndianness(struct TCPPacket* tcp);
 void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer);
 uint16_t getTCPPacketSize(struct TCPPacket* tcp);
 uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp);
-// struct TCPPacket* pollTCP(uint16_t port);
-// void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
+struct TCPPacket* pollTCP(uint16_t port);
+void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
 
 #endif

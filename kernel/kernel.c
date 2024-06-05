@@ -220,12 +220,25 @@ void kernel_main() {
 
             struct TCPPacket tcp;
             // char *tcpPayload = "Un mesaj dragut prin UDP.";
-            constructTCPHeader(&tcp, &target_ip, 50002, 80, NULL, 0, 1);
+            constructTCPHeader(&tcp, &target_ip, 50002, 80, NULL, 0, 1, 0);
 
             // kprintf("UDP size: %u\n", udp.total_length);
             sendTCP(&tcp, NULL, 0);
 
+            // wait for the response (disregard IP for now)
+            kprint("Waiting for SYN response...");
+            struct TCPPacket* syn_res = NULL;
+            do {
+                syn_res = pollTCP(50002);
+            } while (syn_res == NULL);
+
             kprint("Sent TCP packet from 10.0.2.15 (us) to 192.168.10.1\n");
+            if ((syn_res->offset_and_flags & TCP_FLAG_SYN) && (syn_res->offset_and_flags & TCP_FLAG_ACK)) {
+                kprint("Received Handshake response... Sending ACK");
+                struct TCPPacket respTCP;
+                constructTCPHeader(&respTCP, &target_ip, 50002, 80, NULL, 0, 0, 1);
+                sendTCP(&respTCP, NULL, 0);
+            }
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
