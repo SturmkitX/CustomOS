@@ -216,29 +216,38 @@ void kernel_main() {
             kprint("Trying to send TCP packet to 192.168.10.1\n");
             union IPAddress target_ip;
             // target_ip.integerForm = 3232238081;
-            target_ip.integerForm = 3232238081;
+            target_ip.integerForm = 3232238203;
 
             struct TCPPacket tcp;
             // char *tcpPayload = "Un mesaj dragut prin UDP.";
-            constructTCPHeader(&tcp, &target_ip, 50002, 80, NULL, 0, 1, 0);
+            constructTCPHeader(&tcp, &target_ip, 50002, 12345, NULL, 0, 1, 0, 0, 0);
 
             // kprintf("UDP size: %u\n", udp.total_length);
-            sendTCP(&tcp, NULL, 0);
+            sendTCP(&tcp);
 
-            // wait for the response (disregard IP for now)
-            kprint("Waiting for SYN response...");
-            struct TCPPacket* syn_res = NULL;
-            do {
-                syn_res = pollTCP(50002);
-            } while (syn_res == NULL);
+            // wait for the connection (disregard IP for now)
+            kprint("Waiting for TCP Connection...");
 
-            kprint("Sent TCP packet from 10.0.2.15 (us) to 192.168.10.1\n");
-            if ((syn_res->offset_and_flags & TCP_FLAG_SYN) && (syn_res->offset_and_flags & TCP_FLAG_ACK)) {
-                kprint("Received Handshake response... Sending ACK");
-                struct TCPPacket respTCP;
-                constructTCPHeader(&respTCP, &target_ip, 50002, 80, NULL, 0, 0, 1);
-                sendTCP(&respTCP, NULL, 0);
+            while(!checkTCPConnection(50002)) {tcpTXBufferHandler();}    // do nothing
+            uint32_t bufi;   // may need to call it multiple times, just in case (it should be safe)
+
+            for (bufi = 0; bufi < 15; bufi++) {
+                tcpTXBufferHandler();
             }
+
+            kprint("Established connection to 192.168.10.1:80\n");
+            // we should now send our request
+            char* httpReq = "GET / HTTP/1.1\r\nHost: 192.168.10.1\r\nConnection: keep-alive\r\nUpgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9,en-US;q=0.8,en;q=0.7,de;q=0.6,el;q=0.5\r\n\r\n";
+            
+            kprint("Attempting to send a HTTP request...\n");
+            struct TCPPacket httpTCP;
+            constructTCPHeader(&httpTCP, &target_ip, 50002, 12345, httpReq, strlen(httpReq), 0, 1, 1, 0);
+            sendTCP(&httpTCP);
+            for (bufi = 0; bufi < 15; bufi++) {
+                tcpTXBufferHandler();
+            }
+
+            while (1) {tcpTXBufferHandler();}
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

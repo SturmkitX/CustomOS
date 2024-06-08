@@ -147,8 +147,7 @@ static void receive_packet() {
                 struct TCPPacket tcp;
                 memory_copy(&tcp.ip, &ip, sizeof(ip));
                 remainingBuff = parseTCPPacket(remainingBuff, &tcp);
-                kprintf("TCP Receive port: %u\n", tcp.dstport);
-                addTCPPacket(tcp.dstport, &tcp);
+                handleTCPPacketRecv(&tcp);
             }
             break;
         default:

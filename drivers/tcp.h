@@ -38,23 +38,30 @@ struct TCPPacket {
     uint16_t mss;   // Max segment size
 
     uintptr_t payload;
+    uint16_t payloadSize;
 };
 
 struct TCPEntry {
     struct TCPPacket tcp[TCP_ENTRY_MAX_SIZE];
     uint16_t size;
     uint16_t current_ptr;
+    uint8_t established;
 };
 
-void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn, uint8_t isAck);
-uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn);
-void sendTCP(struct TCPPacket *tcp, uintptr_t buff, uint16_t buffLen);
+void constructTCPHeader(struct TCPPacket* tcp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength, uint8_t isSyn, uint8_t isAck, uint8_t isPush, uint8_t isFin);
+uint16_t calculateTCPChecksum(struct TCPPacket* tcpHeader, uint8_t isSyn);
+void sendTCP(struct TCPPacket *tcp);
 
 void convertTCPEndianness(struct TCPPacket* tcp);
 void generateTCPHeaderBytes(struct TCPPacket* tcp, uintptr_t buffer);
 uint16_t getTCPPacketSize(struct TCPPacket* tcp);
 uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp);
 struct TCPPacket* pollTCP(uint16_t port);
+uint8_t checkTCPConnection(uint16_t port);
+void handleTCPPacketRecv(struct TCPPacket* tcp);
 void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
+
+// feels more like internal functionality, but I need it here now
+void tcpTXBufferHandler();
 
 #endif
