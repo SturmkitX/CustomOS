@@ -4,6 +4,50 @@
 #include "../libc/string.h"
 #include "../libc/endian.h"
 
+uint32_t computeHashCode(uintptr_t payload, uint16_t payloadLength) {
+    uint32_t sum = 0, factor = (1 << 4);
+    uint32_t i;
+    char* buff = (char*) payload;
+    for (i=0; i < payloadLength; i++) {
+        if (buff[i] == '.') factor <<= 1;
+        else                sum += buff[i] * factor;
+    }
+
+    return sum;
+}
+
+void generateDNSLabels(struct DNSPacket* dns, uintptr_t payload, uint16_t payloadLength) {
+    dns->labels = (struct DNSLabel*) kmalloc(sizeof(struct DNSLabel) * 64);     // assume no more than 64 labels
+    dns->no_labels = 0;
+
+    char curname[64];   // Label max size = 63 bytes
+    curname[0] = 0;
+    char* dnsEntry = (char*) payload;
+
+    uint32_t i;
+    // uintptr_t dnsEndP = dnsEnd;
+    for (i=0; i < payloadLength; i++) {
+        if (dnsEntry[i] != '.') {
+            append(curname, dnsEntry[i]);
+        } else {
+            struct DNSLabel* labelEntry = &dns->labels[dns->no_labels];
+            labelEntry->length = strlen(curname);
+            memory_copy(labelEntry->name, curname, labelEntry->length);
+            curname[0] = '\0';
+            dns->no_labels++;
+        }
+    }
+    struct DNSLabel* labelEntry = &dns->labels[dns->no_labels];
+    labelEntry->length = strlen(curname);
+    memory_copy(labelEntry->name, curname, labelEntry->length);
+    curname[0] = '\0';
+    dns->no_labels++;  // mark final 0 label
+    // memory_copy(dnsEnd, payload, payloadLength);
+    dns->labels[dns->no_labels].length = 0;
+
+    dns->no_labels++;
+}
+
 void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t payloadLength) {
     dns->id = 1;    // use fixed value for now, will update later
     dns->flags = 0; // this needs to be tuned, for now I think everything 0 should suffice
@@ -16,37 +60,14 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
     uintptr_t dnsEnd = (uintptr_t)(dns + 1);
 
     // need to insert the labels
-    char curname[24];   // limit labels to 24 bytes
-    curname[0] = 0;
-    char* dnsEntry = (char*) payload;
+    generateDNSLabels(dns, payload, payloadLength);
+    
+    dns->query_type = 1;
+    dns->query_class = 1;
 
-    uint32_t i, no_label = 0;
-    uintptr_t dnsEndP = dnsEnd;
-    for (i=0; i < payloadLength; i++) {
-        if (dnsEntry[i] != '.') {
-            append(curname, dnsEntry[i]);
-        } else {
-            kprintf("Found label: %s\n", curname);
-            *(uint8_t*)(dnsEndP) = strlen(curname);
-            memory_copy(dnsEndP + 1, curname, strlen(curname));
-            dnsEndP += (strlen(curname) + 1);
-            curname[0] = '\0';
-            no_label++;
-        }
-    }
-    kprintf("Found label: %s\n", curname);
-    *(uint8_t*)(dnsEndP) = strlen(curname);
-    memory_copy(dnsEndP + 1, curname, strlen(curname));
-    dnsEndP += (strlen(curname) + 1);
-    curname[0] = '\0';
-    no_label += 2;  // mark final 0 label
-    // memory_copy(dnsEnd, payload, payloadLength);
-    *(uint8_t*)(dnsEndP) = 0;   // mark end of labels
-
-    // jump over payload zone for now
-    uint16_t* queryParams = (uint16_t*)(dnsEndP + 1);
-    *queryParams = 1;           // Query type (A)
-    *(queryParams + 1) = 1;     // Class IN
+    dns->is_response = 0;
+    dns->length = payloadLength;
+    dns->hashcode = computeHashCode(payload, payloadLength);
 
     // Config DNS server
     union IPAddress dnssrv;
@@ -78,3 +99,31 @@ void convertDNSEndianness(struct DNSPacket* dns, uint16_t payloadLength) {
 
     convertUDPEndianness(&dns->udp);
 }
+
+void generateDNSHeaderBytes(struct DNSPacket* dns, uintptr_t buffer) {
+    generateUDPHeaderBytes(&dns->udp, buffer);
+    uintptr_t bufferDNS = (uintptr_t)(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN + UDP_HEADER_LEN + DNS_HEADER_LEN);
+    *(uint16_t*)(bufferDNS) = little_to_big_endian_word(dns->id);
+    *(uint16_t*)(bufferDNS + 2) = little_to_big_endian_word(dns->flags);
+    *(uint16_t*)(bufferDNS + 4) = little_to_big_endian_word(dns->no_questions);
+    *(uint16_t*)(bufferDNS + 6) = little_to_big_endian_word(dns->no_answer_rr);
+    *(uint16_t*)(bufferDNS + 8) = little_to_big_endian_word(dns->no_authority_rr);
+    *(uint16_t*)(bufferDNS + 10) = little_to_big_endian_word(dns->no_additional_rr);
+    
+    uintptr_t bufferPayload = (uintptr_t)(bufferDNS + 12);
+    uint32_t i;
+    for (i=0; i < dns->no_labels; i++) {
+        *(uint8_t*)(bufferPayload) = dns->labels[i].length;
+        memory_copy(bufferPayload + 1, dns->labels[i].name, dns->labels[i].length);
+        bufferPayload += (dns->labels[i].length + 1);
+    }
+
+    uint16_t* queryParams = (uint16_t*)(bufferPayload);
+    *queryParams = little_to_big_endian_word(dns->query_type);           // Query type
+    *(queryParams + 1) = little_to_big_endian_word(dns->query_class);     // Class IN
+}
+
+// uint16_t getDNSPacketSize(struct DNSPacket* dns);
+uintptr_t parseDNSPacket(uintptr_t buffer, struct DNSPacket* dns);
+struct DNSPacket* pollDNS(char* dnsName);
+void registerDNSEntry(DNSPacket* dns);
