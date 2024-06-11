@@ -9,3 +9,4 @@ print('Started server on udp://:8080')
 while True:
     message, address = server_socket.recvfrom(1024)
     print(message)
+    server_socket.sendto(b'Multumesc pentru mesaj\n', address)

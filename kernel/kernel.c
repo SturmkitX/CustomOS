@@ -190,7 +190,7 @@ void kernel_main() {
             kprint("Trying to send UDP packet to 192.168.10.105\n");
             union IPAddress target_ip;
             // target_ip.integerForm = 3232238081;
-            target_ip.integerForm = 3232238185;
+            target_ip.integerForm = 3232238203;
 
             struct UDPPacket udp;
             char *udpPayload = "Un mesaj dragut prin UDP.";
@@ -198,6 +198,15 @@ void kernel_main() {
 
             kprintf("UDP size: %u\n", udp.total_length);
             sendUDP(&udp);
+
+            // wait for UDP response
+            kprint("Waiting for UDP response...\n");
+            struct UDPPacket* resp = NULL;
+            do {
+                resp = pollUDP(50000);
+            } while (resp == NULL);
+
+            kprintf("\nGot UDP response packet: Len = %u, Body = %s\n\n", resp->payloadSize, resp->payload);
 
             kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.105\n");
             

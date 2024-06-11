@@ -3,6 +3,8 @@
 #include "ipv4.h"
 #include "../libc/mem.h"
 
+struct UDPEntry* _udp_entries[(1 << 16)];
+
 void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t srcport, uint16_t dstport, uintptr_t payload, uint16_t payloadLength) {
     // also need to add IP header
     constructIPPacket(&udp->ip, UDP_HEADER_LEN + payloadLength, 17, destip);   // variable length UDP, Protocol 17 (UDP, 0x11)
@@ -106,4 +108,38 @@ void handleUDPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {
     struct UDPPacket udp;
     memory_copy(&udp.ip, ip, sizeof(struct IPPacket));
     uintptr_t remainingBuff = parseUDPPacket(buffer, &udp);
+
+    // register UDP packet
+    addUDPPacket(udp.dstport, &udp);
+}
+
+struct UDPPacket* pollUDP(uint16_t port) {
+    if (_udp_entries[port] == NULL)
+        return NULL;
+    
+    struct UDPEntry* entry = _udp_entries[port];
+    if (entry->current_ptr == entry->size)
+        return NULL;
+
+    return &entry->udp[entry->current_ptr++];
+}
+
+void addUDPPacket(uint16_t port, struct UDPPacket* udp) {
+    if (_udp_entries[port] == NULL) {
+        kprintf("Creating Entries for UDP Port: %u\n", port);
+        _udp_entries[port] = (struct UDPEntry*) kmalloc(sizeof(struct UDPEntry));
+        _udp_entries[port]->size = 0;
+        _udp_entries[port]->current_ptr = 0;
+    }
+    
+    struct UDPEntry* entry = _udp_entries[port];
+
+    // if (entry == NULL) {
+    //     kprintf("FATAL ERROR! AddUDPPacket failed to add packet with payload len %u on port %u\n", udp->payloadSize, port);
+    //     asm volatile("hlt");
+    // }
+    // for now, we only accept packets from one connection
+    // the packet should be already dropped if its seq does not match what we acknowledge
+    
+    memory_copy(&entry->udp[entry->size++], udp, sizeof(struct UDPPacket));     // the object is already allocated in memory
 }
