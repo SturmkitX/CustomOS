@@ -202,46 +202,49 @@ void addTCPPacket(uint16_t port, struct TCPPacket* tcp) {
     memory_copy(&entry->tcp[entry->size++], tcp, sizeof(struct TCPPacket));     // the object is already allocated in memory
 }
 
-void handleTCPPacketRecv(struct TCPPacket* tcp) {
-    kprintf("TCP Receive port: %u\n", tcp->dstport);
-    if ((tcp->offset_and_flags & TCP_FLAG_ACK)) {
+void handleTCPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {
+    struct TCPPacket tcp;
+    memory_copy(&tcp.ip, ip, sizeof(struct IPPacket));
+    uintptr_t remainingBuff = parseTCPPacket(buffer, &tcp);
+    kprintf("TCP Receive port: %u\n", tcp.dstport);
+    if ((tcp.offset_and_flags & TCP_FLAG_ACK)) {
         // means we started this connection (probably?)
         // IP is still not validated at this point
         // check and update values
-        if (_current_ack != tcp->seq && _current_ack != 0) {
+        if (_current_ack != tcp.seq && _current_ack != 0) {
             // drop the package
-            kprintf("Dropped TCP package: SEQ: %u, OUR ACK: %u\n", tcp->seq, _current_ack);
+            kprintf("Dropped TCP package: SEQ: %u, OUR ACK: %u\n", tcp.seq, _current_ack);
             return;
         }
 
-        _current_seq = tcp->ack;
-        if (_current_ack == 0) _current_ack = tcp->seq;
-        kprintf("Current ACK: %u %u\n", _current_ack, tcp->payloadSize);
+        _current_seq = tcp.ack;
+        if (_current_ack == 0) _current_ack = tcp.seq;
+        kprintf("Current ACK: %u %u\n", _current_ack, tcp.payloadSize);
         
 
-        if ((tcp->offset_and_flags & TCP_FLAG_FIN)) {
+        if ((tcp.offset_and_flags & TCP_FLAG_FIN)) {
             // Send a FIN back and free the buffer
             kprint("Received FIN Message\n");
-            _current_ack += (tcp->payloadSize == 0 ? 1 : tcp->payloadSize);
+            _current_ack += (tcp.payloadSize == 0 ? 1 : tcp.payloadSize);
             struct TCPPacket respTCP;
-            constructTCPHeader(&respTCP, &tcp->ip.srcip, tcp->dstport, tcp->srcport, NULL, 0, 0, 1, 0, 1);
+            constructTCPHeader(&respTCP, &tcp.ip.srcip, tcp.dstport, tcp.srcport, NULL, 0, 0, 1, 0, 1);
             sendTCP(&respTCP);
 
-            kfree(_tcp_entries[tcp->dstport]);
-            _tcp_entries[tcp->dstport] = NULL;
+            kfree(_tcp_entries[tcp.dstport]);
+            _tcp_entries[tcp.dstport] = NULL;
 
             return;
         }
 
-        if ((tcp->offset_and_flags & TCP_FLAG_SYN)) {
+        if ((tcp.offset_and_flags & TCP_FLAG_SYN)) {
             kprint("Received Handshake response... Sending ACK\n");
-            _current_ack += (tcp->payloadSize == 0 ? 1 : tcp->payloadSize);
+            _current_ack += (tcp.payloadSize == 0 ? 1 : tcp.payloadSize);
             struct TCPPacket respTCP;
-            constructTCPHeader(&respTCP, &tcp->ip.srcip, tcp->dstport, tcp->srcport, NULL, 0, 0, 1, 0, 0);
+            constructTCPHeader(&respTCP, &tcp.ip.srcip, tcp.dstport, tcp.srcport, NULL, 0, 0, 1, 0, 0);
             sendTCP(&respTCP);
 
             // Register this connection as established
-            uint16_t port = tcp->dstport;
+            uint16_t port = tcp.dstport;
             if (_tcp_entries[port] == NULL) {
                 kprintf("Creating Entries for TCP Port: %u\n", port);
                 _tcp_entries[port] = (struct TCPEntry*) kmalloc(sizeof(struct TCPEntry));
@@ -253,21 +256,21 @@ void handleTCPPacketRecv(struct TCPPacket* tcp) {
             return;
         }
 
-        if ((tcp->offset_and_flags & TCP_FLAG_PUSH)) {
+        if ((tcp.offset_and_flags & TCP_FLAG_PUSH)) {
             // _current_ack += (tcp->payloadSize == 0 ? 1 : tcp->payloadSize);
-            _current_ack += tcp->payloadSize;
+            _current_ack += tcp.payloadSize;
             // Save packet, payload and acknowledge
             kprint("Received TCP Message... Sending ACK\n");
-            if (_tcp_entries[tcp->dstport] == NULL)     // if we don't know of this connection, drop the package
+            if (_tcp_entries[tcp.dstport] == NULL)     // if we don't know of this connection, drop the package
                 return;
 
             struct TCPPacket respTCP;
-            constructTCPHeader(&respTCP, &tcp->ip.srcip, tcp->dstport, tcp->srcport, NULL, 0, 0, 1, 0, 0);
+            constructTCPHeader(&respTCP, &tcp.ip.srcip, tcp.dstport, tcp.srcport, NULL, 0, 0, 1, 0, 0);
             sendTCP(&respTCP);
         }
     }
 
-    addTCPPacket(tcp->dstport, tcp);
+    addTCPPacket(tcp.dstport, &tcp);
 }
 
 void tcpTXBufferHandler() {

@@ -58,7 +58,7 @@ uint16_t getTCPPacketSize(struct TCPPacket* tcp);
 uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp);
 struct TCPPacket* pollTCP(uint16_t port);
 uint8_t checkTCPConnection(uint16_t port);
-void handleTCPPacketRecv(struct TCPPacket* tcp);
+void handleTCPPacketRecv(uintptr_t buffer, struct IPPacket* ip);
 void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
 
 // feels more like internal functionality, but I need it here now

@@ -32,5 +32,6 @@ void constructIPPacket(struct IPPacket* ip, uint16_t payload_len, uint8_t protoc
 void convertIPPacketEndianness(struct IPPacket* ip);
 void generateIPHeaderBytes(struct IPPacket* ip, uintptr_t buffer);
 uintptr_t parseIPHeader(uintptr_t buffer, struct IPPacket* ip);
+void handleIPPacketRecv(uintptr_t buffer, struct EthernetFrame* eth);
 
 #endif

@@ -11,12 +11,13 @@ void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t
     udp->dstport = dstport;
 
     udp->total_length = UDP_HEADER_LEN + payloadLength;
+    udp->payload = payload;
+    udp->payloadSize = payloadLength;
 
-    udp->checksum = calculateUDPChecksum(udp, payload, payloadLength);
-    // udp->checksum = 0;  // disable for now
+    udp->checksum = calculateUDPChecksum(udp);
 }
 
-uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader, uintptr_t payload, uint16_t payloadLength) {
+uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader) {
     // 1. Add up pseudo header (Src IP + Dst IP + IP protocol + UDP Length)
     uint32_t sum = 0;
     sum += (udpHeader->ip.srcip.integerForm >> 16);
@@ -36,13 +37,13 @@ uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader, uintptr_t payload, ui
 
     // 3. Add up payload
     uint32_t i;
-    for (i=0; i < payloadLength - 1; i += 2) {
-        uint16_t num = little_to_big_endian_word(*(uint16_t*)(payload + i));
+    for (i=0; i < udpHeader->payloadSize - 1; i += 2) {
+        uint16_t num = little_to_big_endian_word(*(uint16_t*)(udpHeader->payload + i));
         sum += num;
     }
 
-    if (i == payloadLength - 1) {
-        sum += (*(uint8_t*)(payload + payloadLength - 1)) << 8;
+    if (i == udpHeader->payloadSize - 1) {
+        sum += (*(uint8_t*)(udpHeader->payload + udpHeader->payloadSize - 1)) << 8;
     }
 
     // sum += calculateIPHeaderChecksumPhase1(&udpHeader->ip);
@@ -50,12 +51,15 @@ uint16_t calculateUDPChecksum(struct UDPPacket* udpHeader, uintptr_t payload, ui
     return wrapHeaderChecksum(sum);
 }
 
-void sendUDP(struct UDPPacket *udp, uintptr_t buff, uint16_t buffLen) {
-    memory_copy((uintptr_t)(udp + 1), buff, buffLen);
+void sendUDP(struct UDPPacket *udp) {
+    uint8_t udpBytes[1512];     // for now, set it to mtu size
+    generateUDPHeaderBytes(udp, udpBytes);
+    uint16_t udpSize = getUDPPacketSize(udp);
 
-    convertUDPEndianness(udp);
+    kprintf("UDP Size is: %u\n", udpSize);
+    memory_copy((uintptr_t)(udpBytes + udpSize - udp->payloadSize), udp->payload, udp->payloadSize);
 
-    transmit_packet(udp, sizeof(struct UDPPacket) + buffLen);
+    transmit_packet(udpBytes, udpSize);
 }
 
 void convertUDPEndianness(struct UDPPacket* udp) {
@@ -65,4 +69,41 @@ void convertUDPEndianness(struct UDPPacket* udp) {
     udp->checksum = little_to_big_endian_word(udp->checksum);
 
     convertIPPacketEndianness(&udp->ip);
+}
+
+void generateUDPHeaderBytes(struct UDPPacket* udp, uintptr_t buffer) {
+    generateIPHeaderBytes(&udp->ip, buffer);
+
+    // May produce a bug
+    uintptr_t bufferUDP = (uintptr_t)(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN);
+    *(uint16_t*)(bufferUDP) = little_to_big_endian_word(udp->srcport);
+    *(uint16_t*)(bufferUDP + 2) = little_to_big_endian_word(udp->dstport);
+    *(uint16_t*)(bufferUDP + 4) = little_to_big_endian_word(udp->total_length);
+    *(uint16_t*)(bufferUDP + 6) = little_to_big_endian_word(udp->checksum);
+    memory_copy(bufferUDP + 8, udp->payload, udp->payloadSize);
+}
+
+uint16_t getUDPPacketSize(struct UDPPacket* udp) {
+    return (udp->ip.total_length + ETHERNET_HEADER_LEN);
+}
+
+uintptr_t parseUDPPacket(uintptr_t buffer, struct UDPPacket* udp) {
+    udp->srcport = little_to_big_endian_word(*(uint16_t*)(buffer));
+    udp->dstport = little_to_big_endian_word(*(uint16_t*)(buffer + 2));
+    udp->total_length = little_to_big_endian_word(*(uint16_t*)(buffer + 4));
+    udp->checksum = little_to_big_endian_word(*(uint16_t*)(buffer + 6));
+
+    uint16_t payloadSize = udp->ip.total_length - IP_HEADER_LEN - UDP_HEADER_LEN;
+
+    uintptr_t payloadBuff = (uintptr_t)kmalloc(payloadSize);
+    memory_copy(payloadBuff, buffer + 8, payloadSize);
+
+    udp->payload = payloadBuff;
+    udp->payloadSize = payloadSize;
+}
+
+void handleUDPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {
+    struct UDPPacket udp;
+    memory_copy(&udp.ip, ip, sizeof(struct IPPacket));
+    uintptr_t remainingBuff = parseUDPPacket(buffer, &udp);
 }

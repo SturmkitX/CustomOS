@@ -197,7 +197,7 @@ void kernel_main() {
             constructUDPHeader(&udp, &target_ip, 50000, 8080, udpPayload, strlen(udpPayload));
 
             kprintf("UDP size: %u\n", udp.total_length);
-            sendUDP(&udp, udpPayload, strlen(udpPayload));
+            sendUDP(&udp);
 
             kprint("Sent UDP packet from 10.0.2.15 (us) to 192.168.10.105\n");
             

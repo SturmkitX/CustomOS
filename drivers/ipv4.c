@@ -150,3 +150,16 @@ uintptr_t parseIPHeader(uintptr_t buffer, struct IPPacket* ip) {
 
     return (buffer + IP_HEADER_LEN);
 }
+
+void handleIPPacketRecv(uintptr_t buffer, struct EthernetFrame* eth) {
+    struct IPPacket ip;
+    memory_copy(&ip.eth, eth, sizeof(struct EthernetFrame));
+    uintptr_t remainingBuff = parseIPHeader(buffer, &ip);
+    if (ip.protocol == 6) {
+        kprint("Got TCP Packet\n");
+        handleTCPPacketRecv(remainingBuff, &ip);
+    } else if (ip.protocol == 17) {
+        kprint("Got UDP Packet\n");
+        handleUDPPacketRecv(remainingBuff, &ip);
+    }
+}
