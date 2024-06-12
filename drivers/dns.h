@@ -33,6 +33,12 @@ struct DNSPacket {
     uint16_t query_class;
 };
 
+struct DNSRecord {
+    uint32_t hashcode;
+    char name[256];     // Max name is 253 chars
+    union IPAddress ip;
+};
+
 void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t payloadLength);
 void sendDNS(struct DNSPacket* dns, char* name, uint16_t payloadLength);
 
@@ -40,7 +46,7 @@ void convertDNSEndianness(struct DNSPacket* dns, uint16_t payloadLength);
 void generateDNSHeaderBytes(struct DNSPacket* dns, uintptr_t buffer);
 uint16_t getDNSPacketSize(struct DNSPacket* dns);
 uintptr_t parseDNSPacket(uintptr_t buffer, struct DNSPacket* dns);
-struct DNSPacket* pollDNS(char* dnsName);
-void registerDNSEntry(DNSPacket* dns);
+struct DNSRecord* pollDNS(char* dnsName);
+void registerDNSRecord(struct DNSPacket* dns);
 
 #endif

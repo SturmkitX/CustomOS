@@ -4,6 +4,9 @@
 #include "../libc/string.h"
 #include "../libc/endian.h"
 
+static struct DNSRecord _dns_records[32];   // cache up to 32 DNS records for now
+static uint32_t _dns_size = 0;
+
 uint32_t computeHashCode(uintptr_t payload, uint16_t payloadLength) {
     uint32_t sum = 0, factor = (1 << 4);
     uint32_t i;
@@ -73,7 +76,7 @@ void constructDNSHeader(struct DNSPacket* dns, uintptr_t payload, uint16_t paylo
     union IPAddress dnssrv;
     dnssrv.integerForm = 3232238081;
 
-    constructUDPHeader(&dns->udp, &dnssrv, 50001, 53, &dns->id, sizeof(struct DNSPacket) - sizeof(struct UDPPacket) + payloadLength + 4 + no_label);
+    constructUDPHeader(&dns->udp, &dnssrv, 50001, 53, &dns->id, sizeof(struct DNSPacket) - sizeof(struct UDPPacket) + payloadLength + 4 + dns->no_labels);
 }
 
 void sendDNS(struct DNSPacket* dns, char* name, uint16_t payloadLength) {
@@ -124,6 +127,47 @@ void generateDNSHeaderBytes(struct DNSPacket* dns, uintptr_t buffer) {
 }
 
 // uint16_t getDNSPacketSize(struct DNSPacket* dns);
-uintptr_t parseDNSPacket(uintptr_t buffer, struct DNSPacket* dns);
-struct DNSPacket* pollDNS(char* dnsName);
-void registerDNSEntry(DNSPacket* dns);
+uintptr_t parseDNSPacket(uintptr_t buffer, struct DNSPacket* dns) {
+    dns->id = big_to_little_endian_word(*(uint16_t*)(buffer));
+    dns->flags = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
+    dns->no_questions = big_to_little_endian_word(*(uint16_t*)(buffer + 4));
+    dns->no_answer_rr = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
+    dns->no_authority_rr = big_to_little_endian_word(*(uint16_t*)(buffer + 8));
+    dns->no_additional_rr = big_to_little_endian_word(*(uint16_t*)(buffer + 10));
+
+    // will finish later
+    
+    uintptr_t bufferPayload = (uintptr_t)(buffer + 12);
+    uint32_t i;
+    for (i=0; i < dns->no_labels; i++) {
+        *(uint8_t*)(bufferPayload) = dns->labels[i].length;
+        memory_copy(bufferPayload + 1, dns->labels[i].name, dns->labels[i].length);
+        bufferPayload += (dns->labels[i].length + 1);
+    }
+
+    uint16_t* queryParams = (uint16_t*)(bufferPayload);
+    *queryParams = little_to_big_endian_word(dns->query_type);           // Query type
+    *(queryParams + 1) = little_to_big_endian_word(dns->query_class);     // Class IN
+
+    return bufferPayload;
+}
+
+struct DNSRecord* pollDNS(char* dnsName) {
+    // let's use hashcode to improve performance
+    uint32_t hashcode = computeHashCode(dnsName, strlen(dnsName));
+    uint32_t i;
+
+    for (i=0; i < _dns_size; i++) {
+        if (_dns_records[i].hashcode == hashcode) {
+            return &_dns_records[i];
+        }
+    }
+
+    return NULL;
+}
+
+void registerDNSRecord(struct DNSPacket* dns) {
+    _dns_records[_dns_size].hashcode = dns->hashcode;
+
+    // the rest of the data must be filled here
+}
