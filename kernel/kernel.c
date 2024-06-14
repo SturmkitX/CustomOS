@@ -270,10 +270,16 @@ void kernel_main() {
             kprint("Trying to play some audio...\n");
             kprint("Starting with garbage!\n");
 
-            uintptr_t garbage = (uintptr_t) kmalloc(16384000);  // this is like half the song, 32000 sectors
+            uintptr_t garbage = (uintptr_t) kmalloc(33710080);  // this is like half the song, 32000 sectors
 
             kprint("Garbage allocated\n");
+
+            kprint("Loading first half of the song...\n");
             ata_pio_read48(256, 32000, garbage);    // part of the song
+
+            kprint("Loading the other half...\n");
+            ata_pio_read48(32256, 33840, garbage + 32000 * 512);
+            
 
             // let's test if working with max 255 sectors will improve the stability (no)
             // uint16_t sectori = 0;
@@ -283,7 +289,7 @@ void kernel_main() {
 
             kprintf("%u %u %u\n", *(uint8_t*)(garbage), *(uint8_t*)(garbage + 1), *(uint8_t*)(garbage + 2000));
             
-            playAudio(garbage, 32000 * 512);
+            playAudio(garbage, 65840 * 512);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

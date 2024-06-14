@@ -21,6 +21,8 @@
 uint32_t AC97NAMixerRegister;
 uint32_t AC97NABusRegister;
 
+static uint8_t _audio_sample_size = 2;  // 16 bits
+
 uint32_t identifyAC97() {
     // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
     uint32_t addr = getDeviceBAR0(0x8086, 0x2415);  // 82801AA AC'97 Audio Controller
@@ -98,11 +100,11 @@ void playAudio(uintptr_t buffer, uint32_t bufferLength) {
     for (i=0; i < AC97_BDL_NO_ENTRIES && offset < bufferLength; i++) {
         desc[i].data = buffer + offset;
 
-        inc = MIN(bufferLength - offset, AC97_BDL_NO_SAMPLES_MAX);
+        inc = MIN((bufferLength - offset) / _audio_sample_size, AC97_BDL_NO_SAMPLES_MAX);
         desc[i].no_samples = inc;
         desc[i].control = inc < AC97_BDL_NO_SAMPLES_MAX ? (1 << 14) : 0;    // send Last Entry bit if necessary
 
-        offset += inc;
+        offset += inc * _audio_sample_size;
     }
 
     // Set reset bit of output channel and wait for clear
@@ -135,11 +137,11 @@ void playAudio(uintptr_t buffer, uint32_t bufferLength) {
         if (curr_entry != last_entry) {
             desc[last_entry].data = buffer + offset;
 
-            inc = MIN(bufferLength - offset, AC97_BDL_NO_SAMPLES_MAX);
+            inc = MIN((bufferLength - offset) / _audio_sample_size, AC97_BDL_NO_SAMPLES_MAX);
             desc[last_entry].no_samples = inc;
             desc[last_entry].control = inc < AC97_BDL_NO_SAMPLES_MAX ? (1 << 14) : 0;    // send Last Entry bit if necessary
 
-            offset += inc;
+            offset += inc * _audio_sample_size;
 
             port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, last_entry);   // only 5 bits are used (0..31)
             last_entry = curr_entry;
