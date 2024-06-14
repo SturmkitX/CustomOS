@@ -182,7 +182,7 @@ void ata_pio_read48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
     port_byte_out(ATA_PRIMARY_COMM_REGSTAT, 0x24);                   // READ SECTORS EXT
 
 
-    uint8_t i;
+    uint16_t i;
     for(i = 0; i < sectorcount; i++) {
         // POLL!
         while(1) {
@@ -219,7 +219,7 @@ void ata_pio_write48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
     port_byte_out(ATA_PRIMARY_LBA_HI, (LBA >> 16) & 0xFF);           // LBA3
     port_byte_out(ATA_PRIMARY_COMM_REGSTAT, 0x34);                   // READ SECTORS EXT
 
-    uint8_t i;
+    uint16_t i;
     for(i = 0; i < sectorcount; i++) {
         // POLL!
         while(1) {

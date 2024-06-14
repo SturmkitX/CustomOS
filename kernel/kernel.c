@@ -19,6 +19,8 @@
 #include "../drivers/dns.h"
 #include "../drivers/tcp.h"
 
+#include "../drivers/ac97.h"
+
 static char _k_kbd_buff[256];
 
 void kernel_main() {
@@ -257,6 +259,31 @@ void kernel_main() {
             }
 
             while (1) {tcpTXBufferHandler();}
+        } else if (strcmp(_k_kbd_buff, "AUDIO") == 0) {
+            kprint("Checking AC97 status...\n");
+
+            uint32_t ioaddr = identifyAC97();
+            kprintf("Received IO Addr %u\n", ioaddr);
+            
+            initializeAC97();
+        } else if (strcmp(_k_kbd_buff, "PLAY") == 0) {
+            kprint("Trying to play some audio...\n");
+            kprint("Starting with garbage!\n");
+
+            uintptr_t garbage = (uintptr_t) kmalloc(16384000);  // this is like half the song, 32000 sectors
+
+            kprint("Garbage allocated\n");
+            ata_pio_read48(256, 32000, garbage);    // part of the song
+
+            // let's test if working with max 255 sectors will improve the stability (no)
+            // uint16_t sectori = 0;
+            // for (sectori = 0; sectori < 32000; sectori += 200) {
+            //     ata_pio_read48(256 + sectori, 200, garbage + sectori * 512);
+            // }
+
+            kprintf("%u %u %u\n", *(uint8_t*)(garbage), *(uint8_t*)(garbage + 1), *(uint8_t*)(garbage + 2000));
+            
+            playAudio(garbage, 32000 * 512);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
