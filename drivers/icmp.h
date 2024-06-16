@@ -18,6 +18,7 @@ struct ICMPEchoPacket {
     uint16_t id;
     uint16_t seq;
     char payload[32];   // take a 32 bytes long payload (just like I saw in Windows :)))
+    uint16_t payloadSize;
 };
 
 struct ICMPDestinationUnreachablePacket {
@@ -31,5 +32,11 @@ void constructICMPEcho(struct ICMPEchoPacket* icmp, union IPAddress* destip, uin
 uint16_t calculateICMPEchoChecksum(struct ICMPEchoPacket* icmpHeader);
 
 void convertICMPEchoEndianness(struct ICMPEchoPacket* icmp);
+
+void sendICMPEcho(struct ICMPEchoPacket* icmp);
+void generateICMPEchoHeaderBytes(struct ICMPEchoPacket* icmp, uintptr_t buffer);
+uintptr_t parseICMPEchoPacket(uintptr_t buffer, struct ICMPEchoPacket* icmp);
+uint16_t getICMPEchoPacketSize(struct ICMPEchoPacket* icmp);
+
 
 #endif

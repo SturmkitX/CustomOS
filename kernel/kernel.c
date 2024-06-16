@@ -20,6 +20,7 @@
 #include "../drivers/tcp.h"
 
 #include "../drivers/ac97.h"
+#include "../cpu/timer.h"
 
 static char _k_kbd_buff[256];
 
@@ -181,10 +182,11 @@ void kernel_main() {
 
             struct ICMPEchoPacket icmp;
             constructICMPEcho(&icmp, &target_ip, 1);
-            convertICMPEchoEndianness(&icmp);
+            // convertICMPEchoEndianness(&icmp);
 
-            kprintf("ICMP Echo size: %u\n", sizeof(struct ICMPEchoPacket));
-            transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
+            // kprintf("ICMP Echo size: %u\n", sizeof(struct ICMPEchoPacket));
+            // transmit_packet(&icmp, sizeof(struct ICMPEchoPacket));
+            sendICMPEcho(&icmp);
 
             kprint("Sent ICMP packet from 10.0.2.15 (us) to 8.8.8.8 (Google DNS)\n");
             
@@ -293,7 +295,7 @@ void kernel_main() {
         } else if (strcmp(_k_kbd_buff, "SLEEP") == 0) {
             kprint("Starting 5 second sleep...\n");
 
-            sleep(5000);
+            sleep(30000);
             kprintf("Done sleeping!\n");
         }
         kprint("You said: ");

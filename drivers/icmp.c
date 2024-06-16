@@ -47,3 +47,46 @@ void convertICMPEchoEndianness(struct ICMPEchoPacket* icmp) {
 
     convertIPPacketEndianness(&icmp->header.ip);
 }
+
+void sendICMPEcho(struct ICMPEchoPacket* icmp) {
+    uint8_t icmpBytes[128];     // for now, set it to mtu size
+    generateICMPEchoHeaderBytes(icmp, icmpBytes);
+    uint16_t icmpSize = getICMPEchoPacketSize(icmp);
+
+    kprintf("ICMP Size is: %u\n", icmpSize);
+    memory_copy((uintptr_t)(icmpBytes + icmpSize - icmp->payloadSize), icmp->payload, icmp->payloadSize);
+
+    transmit_packet(icmpBytes, icmpSize);
+}
+
+void generateICMPEchoHeaderBytes(struct ICMPEchoPacket* icmp, uintptr_t buffer) {
+    generateIPHeaderBytes(&icmp->header.ip, buffer);
+
+    // May produce a bug
+    uintptr_t bufferICMP = (uintptr_t)(buffer + ETHERNET_HEADER_LEN + IP_HEADER_LEN);
+    *(uint8_t*)(bufferICMP) = icmp->header.type;
+    *(uint8_t*)(bufferICMP + 1) = icmp->header.code;
+    *(uint16_t*)(bufferICMP + 2) = little_to_big_endian_word(icmp->header.checksum);
+
+    *(uint16_t*)(bufferICMP + 4) = little_to_big_endian_word(icmp->id);
+    *(uint16_t*)(bufferICMP + 6) = little_to_big_endian_word(icmp->seq);
+    memory_copy(bufferICMP + 8, icmp->payload, icmp->payloadSize);
+}
+
+uintptr_t parseICMPEchoPacket(uintptr_t buffer, struct ICMPEchoPacket* icmp) {
+    icmp->header.type = *(uint8_t*)(buffer);
+    icmp->header.code = *(uint8_t*)(buffer + 1);
+    icmp->header.checksum = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
+
+    icmp->id = big_to_little_endian_word(*(uint16_t*)(buffer + 4));
+    icmp->seq = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
+
+    uint16_t payloadSize = icmp->header.ip.total_length - IP_HEADER_LEN - ICMP_HEADER_LEN;
+
+    memory_copy(icmp->payload, buffer + 8, payloadSize);
+    icmp->payloadSize = payloadSize;
+}
+
+uint16_t getICMPEchoPacketSize(struct ICMPEchoPacket* icmp) {
+    return (icmp->header.ip.total_length + ETHERNET_HEADER_LEN);
+}
