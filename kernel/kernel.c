@@ -290,6 +290,11 @@ void kernel_main() {
             kprintf("%u %u %u\n", *(uint8_t*)(garbage), *(uint8_t*)(garbage + 1), *(uint8_t*)(garbage + 2000));
             
             playAudio(garbage, 65840 * 512);
+        } else if (strcmp(_k_kbd_buff, "SLEEP") == 0) {
+            kprint("Starting 5 second sleep...\n");
+
+            sleep(5000);
+            kprintf("Done sleeping!\n");
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

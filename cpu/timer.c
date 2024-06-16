@@ -5,6 +5,8 @@
 
 uint32_t tick = 0;
 
+static uint32_t millis_per_tick = 1;    // UNINITIALIZED VALUE
+
 static void timer_callback(registers_t *regs) {
     tick++;
     UNUSED(regs);
@@ -16,11 +18,20 @@ void init_timer(uint32_t freq) {
 
     /* Get the PIT value: hardware clock at 1193180 Hz */
     uint32_t divisor = 1193180 / freq;
+    millis_per_tick = 1000 / freq;
     uint8_t low  = (uint8_t)(divisor & 0xFF);
     uint8_t high = (uint8_t)( (divisor >> 8) & 0xFF);
     /* Send the command */
     port_byte_out(0x43, 0x36); /* Command port */
     port_byte_out(0x40, low);
     port_byte_out(0x40, high);
+}
+
+void sleep(uint32_t millis) {
+    uint32_t elapsedTicks = tick;
+    uint32_t neededTicks = millis / millis_per_tick;
+
+    // busy waiting for now, since we don't have other threads
+    while (tick - elapsedTicks < neededTicks) {}
 }
 
