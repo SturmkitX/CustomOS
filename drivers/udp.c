@@ -16,6 +16,8 @@ void constructUDPHeader(struct UDPPacket* udp, union IPAddress* destip, uint16_t
     udp->payload = payload;
     udp->payloadSize = payloadLength;
 
+    udp->unreachable = 0;
+
     udp->checksum = calculateUDPChecksum(udp);
 }
 
@@ -102,6 +104,9 @@ uintptr_t parseUDPPacket(uintptr_t buffer, struct UDPPacket* udp) {
 
     udp->payload = payloadBuff;
     udp->payloadSize = payloadSize;
+    udp->unreachable = 0;
+
+    return (buffer + UDP_HEADER_LEN + payloadSize);
 }
 
 void handleUDPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {

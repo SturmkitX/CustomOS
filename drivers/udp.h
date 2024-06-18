@@ -17,6 +17,9 @@ struct UDPPacket {
 
     uintptr_t payload;
     uint16_t payloadSize;
+
+    // Special control flags
+    uint8_t unreachable;
 };
 
 struct UDPEntry {

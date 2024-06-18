@@ -22,10 +22,10 @@ struct ICMPEchoPacket {
 };
 
 struct ICMPDestinationUnreachablePacket {
-    uint16_t empty;
-    uint16_t next_mtu;
-    struct ICMPPacket original_header;
-    uint8_t original_payload[8]; // First eight bytes of the original IPv4 payload.
+    struct ICMPPacket header;
+    uint32_t empty;
+    // uint16_t next_mtu;
+    struct IPPacket original_packet;
 };
 
 void constructICMPEcho(struct ICMPEchoPacket* icmp, union IPAddress* destip, uint16_t sequence);
@@ -35,8 +35,8 @@ void convertICMPEchoEndianness(struct ICMPEchoPacket* icmp);
 
 void sendICMPEcho(struct ICMPEchoPacket* icmp);
 void generateICMPEchoHeaderBytes(struct ICMPEchoPacket* icmp, uintptr_t buffer);
-uintptr_t parseICMPEchoPacket(uintptr_t buffer, struct ICMPEchoPacket* icmp);
+uintptr_t parseICMPPacket(uintptr_t buffer, struct ICMPPacket* icmp);
 uint16_t getICMPEchoPacketSize(struct ICMPEchoPacket* icmp);
-
+void handleICMPPacketRecv(uintptr_t buffer, struct IPPacket* ip);
 
 #endif

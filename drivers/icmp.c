@@ -2,6 +2,9 @@
 
 #include "../libc/endian.h"
 #include "../libc/string.h"
+#include "../drivers/screen.h"
+
+#include "udp.h"
 
 static const char* DefaultPayload = "abcdefghijklmnopqrstuvwabcdefghi";
 
@@ -74,20 +77,55 @@ void generateICMPEchoHeaderBytes(struct ICMPEchoPacket* icmp, uintptr_t buffer) 
     memory_copy(bufferICMP + 8, icmp->payload, icmp->payloadSize);
 }
 
-uintptr_t parseICMPEchoPacket(uintptr_t buffer, struct ICMPEchoPacket* icmp) {
-    icmp->header.type = *(uint8_t*)(buffer);
-    icmp->header.code = *(uint8_t*)(buffer + 1);
-    icmp->header.checksum = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
+uintptr_t parseICMPPacket(uintptr_t buffer, struct ICMPPacket* icmp) {
+    icmp->type = *(uint8_t*)(buffer);
+    icmp->code = *(uint8_t*)(buffer + 1);
+    icmp->checksum = big_to_little_endian_word(*(uint16_t*)(buffer + 2));
 
-    icmp->id = big_to_little_endian_word(*(uint16_t*)(buffer + 4));
-    icmp->seq = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
-
-    uint16_t payloadSize = icmp->header.ip.total_length - IP_HEADER_LEN - ICMP_HEADER_LEN;
-
-    memory_copy(icmp->payload, buffer + 8, payloadSize);
-    icmp->payloadSize = payloadSize;
+    return (buffer + 4);
 }
 
 uint16_t getICMPEchoPacketSize(struct ICMPEchoPacket* icmp) {
     return (icmp->header.ip.total_length + ETHERNET_HEADER_LEN);
+}
+
+void handleICMPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {
+    struct ICMPPacket icmp;
+    memory_copy(&icmp.ip, ip, sizeof(struct IPPacket));
+    uintptr_t remainingBuff = parseICMPPacket(buffer, &icmp);
+    switch(icmp.type) {
+        case 0:     // Echo Reply
+            kprintf("Got ICMP Reply from IP %u.%u.%u.%u\n", icmp.ip.srcip.bytes[3], icmp.ip.srcip.bytes[2], icmp.ip.srcip.bytes[1], icmp.ip.srcip.bytes[0]);
+            break;
+        case 3:     // Destination unreachable
+            kprintf("Got ICMP Destination Unreachable from IP %u.%u.%u.%u\n", icmp.ip.srcip.bytes[3], icmp.ip.srcip.bytes[2], icmp.ip.srcip.bytes[1], icmp.ip.srcip.bytes[0]);
+            struct IPPacket originalIP;
+            remainingBuff = parseIPHeader(remainingBuff + 4, &originalIP);      // 4 bytes are zeroed
+
+            kprintf("Parsed IP Header. Protocol == %u\n", originalIP.protocol);
+            if (originalIP.protocol == 17) {
+                // Got UDP packet
+                struct UDPPacket originalUDP;
+                memory_copy(&originalUDP.ip, &originalIP, sizeof(struct IPPacket));
+                remainingBuff = parseUDPPacket(remainingBuff, &originalUDP);
+
+                kprintf("Parsed Dest UNREACH for UDP Packet with src port: %u\n", originalUDP.srcport);
+                originalUDP.unreachable = 1;
+
+                addUDPPacket(originalUDP.srcport, &originalUDP);
+            }
+            break;
+
+        default:
+            kprint("ICMP Packet type not recognized yet\n");
+            
+    }
+
+    // icmp->id = big_to_little_endian_word(*(uint16_t*)(buffer + 4));
+    // icmp->seq = big_to_little_endian_word(*(uint16_t*)(buffer + 6));
+
+    // uint16_t payloadSize = icmp->header.ip.total_length - IP_HEADER_LEN - ICMP_HEADER_LEN;
+
+    // memory_copy(icmp->payload, remainingBuff, payloadSize);
+    // icmp->payloadSize = payloadSize;
 }

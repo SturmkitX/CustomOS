@@ -161,5 +161,8 @@ void handleIPPacketRecv(uintptr_t buffer, struct EthernetFrame* eth) {
     } else if (ip.protocol == 17) {
         kprint("Got UDP Packet\n");
         handleUDPPacketRecv(remainingBuff, &ip);
+    } else if (ip.protocol == 1) {
+        kprint("Got ICMP Packet\n");
+        handleICMPPacketRecv(remainingBuff, &ip);
     }
 }
