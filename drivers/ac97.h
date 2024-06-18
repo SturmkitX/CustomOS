@@ -13,7 +13,7 @@ struct AC97BufferDescriptor {
     uint16_t control;
 };
 
-uint32_t identifyAC97();
+uint8_t identifyAC97();
 uint8_t initializeAC97();
 void playAudio(uintptr_t buffer, uint32_t bufferLength);
 

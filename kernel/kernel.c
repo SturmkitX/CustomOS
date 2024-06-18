@@ -145,8 +145,8 @@ void kernel_main() {
         } else if (strcmp(_k_kbd_buff, "NET") == 0) {
             kprint("Checking RTL8139 status...\n");
 
-            uint32_t ioaddr = identifyRTL8139();
-            kprintf("Received IO Addr %u\n", ioaddr);
+            uint8_t netExists = identifyRTL8139();
+            kprintf("RTL8139 Present: %u\n", netExists);
 
             uint8_t* macAddr = getMACAddress();
             kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
@@ -264,8 +264,8 @@ void kernel_main() {
         } else if (strcmp(_k_kbd_buff, "AUDIO") == 0) {
             kprint("Checking AC97 status...\n");
 
-            uint32_t ioaddr = identifyAC97();
-            kprintf("Received IO Addr %u\n", ioaddr);
+            uint8_t audioExists = identifyAC97();
+            kprintf("AC97 Present: %u\n", audioExists);
             
             initializeAC97();
         } else if (strcmp(_k_kbd_buff, "PLAY") == 0) {

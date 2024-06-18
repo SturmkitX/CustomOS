@@ -1,5 +1,7 @@
 #include "ac97.h"
 
+#include "../cpu/pci.h"
+
 #define REGISTER_BUS_GLOBAL_CONTROL     0x2C
 #define REGISTER_BUS_GLOBAL_STATUS      0X30
 #define REGISTER_BUS_PCM_OUT            0X10
@@ -23,32 +25,32 @@ uint32_t AC97NABusRegister;
 
 static uint8_t _audio_sample_size = 2;  // 16 bits
 
-uint32_t identifyAC97() {
-    // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
-    uint32_t addr = getDeviceBAR0(0x8086, 0x2415);  // 82801AA AC'97 Audio Controller
-    AC97NAMixerRegister = (addr & 0xFFFFFFF0);
+static struct PCIAddressInfo _pci_address;
 
-    addr = getDeviceBAR1(0x8086, 0x2415);  // 82801AA AC'97 Audio Controller
-    AC97NABusRegister = (addr & 0xFFFFFFF0);
+uint8_t identifyAC97() {
+    // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
+    getDeviceInfo(0x8086, 0x2415, &_pci_address);  // 82801AA AC'97 Audio Controller
+    AC97NAMixerRegister = (_pci_address.BAR0 & 0xFFFFFFF0);
+    AC97NABusRegister = (_pci_address.BAR1 & 0xFFFFFFF0);
 
     // should probably also check class 0x04 and subclass 0x01
-    return AC97NAMixerRegister;
+    return (_pci_address.vendor_id != 0xFFFF && _pci_address.device_id != 0xFFFF);
 }
 
 uint8_t initializeAC97() {
     kprintf("AC97 Init IO Addr: %u\n", AC97NAMixerRegister);
     // First check if PCI Bus Mastering is enabled
-    uint16_t commandReg = pciConfigReadWord(0, 3, 0, 4);
+    uint16_t commandReg = pciConfigReadWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4);
     uint8_t enabled = (uint8_t)(commandReg & 0x5);  // PCI Bus Mastering + I/O
 
     if (enabled != 5) {
         kprint("AC97 PCI Bus Mastering is DISABLED. Enabling now...\n");
         // we MUST enable PCI Bus Mastering
         uint8_t mask = commandReg |= 5;     // a fancier way of writing 4
-        pciConfigWriteWord(0, 3, 0, 4, mask);
+        pciConfigWriteWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4, mask);
 
         // check value
-        commandReg = pciConfigReadWord(0, 3, 0, 4);
+        commandReg = pciConfigReadWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4);
         enabled = (uint8_t)(commandReg & 0x5);
     }
 

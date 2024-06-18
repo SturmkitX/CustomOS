@@ -30,13 +30,15 @@ uint32_t RTL8139BaseAddress;
 uint8_t RTL8139TXRegOffset;
 uint16_t RTL8139RXOffset;
 
+static struct PCIAddressInfo _pci_address;
+
 static void rtl8139_handler(registers_t*);
 
-uint32_t identifyRTL8139() {
+uint8_t identifyRTL8139() {
     // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
-    uint32_t addr = getDeviceBAR0(0x10EC, 0x8139);
-    RTL8139BaseAddress = (addr & 0xFFFFFFF0);
-    return RTL8139BaseAddress;
+    getDeviceInfo(0x10EC, 0x8139, &_pci_address);
+    RTL8139BaseAddress = (_pci_address.BAR0 & 0xFFFFFFF0);
+    return (_pci_address.vendor_id != 0xFFFF && _pci_address.device_id != 0xFFFF);
 }
 
 uint8_t* getMACAddress() {
@@ -54,17 +56,17 @@ uint8_t* getMACAddress() {
 uint8_t initializeRTL8139() {
     kprintf("RTL8139 Init IO Addr: %u\n", RTL8139BaseAddress);
     // First check if PCI Bus Mastering is enabled
-    uint16_t commandReg = pciConfigReadWord(0, 3, 0, 4);
+    uint16_t commandReg = pciConfigReadWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4);
     uint8_t enabled = (uint8_t)(commandReg & 0x4);
 
     if (enabled == 0) {
         kprint("RTL8139 PCI Bus Mastering is DISABLED. Enabling now...\n");
         // we MUST enable PCI Bus Mastering
         uint8_t mask = commandReg |= (1 << 2);     // a fancier way of writing 4
-        pciConfigWriteWord(0, 3, 0, 4, mask);
+        pciConfigWriteWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4, mask);
 
         // check value
-        commandReg = pciConfigReadWord(0, 3, 0, 4);
+        commandReg = pciConfigReadWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4);
         enabled = (uint8_t)(commandReg & 0x4);
     }
 

@@ -35,6 +35,7 @@ void constructICMPEcho(struct ICMPEchoPacket* icmp, union IPAddress* destip, uin
     icmp->id = 1;   // use a fixed value for now
     icmp->seq = sequence;
     memory_copy(icmp->payload, DefaultPayload, strlen(DefaultPayload));
+    icmp->payloadSize = strlen(DefaultPayload);
 
     icmp->header.checksum = calculateICMPEchoChecksum(icmp);
 }

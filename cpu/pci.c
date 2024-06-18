@@ -180,3 +180,42 @@ uint8_t getIRQNumber(uint16_t vendorID, uint16_t deviceID) {
 
     return 0xFF;
 }
+
+void getDeviceInfo(uint16_t vendorID, uint16_t deviceID, struct PCIAddressInfo* pci) {
+    uint32_t bus, device, address, tmp;
+    const uint32_t nodeID = (((uint32_t)deviceID << 16) | vendorID);
+    for (bus=0; bus < 256; bus++) {
+        for (device=0; device < 32; device++) {
+            // Create configuration address as per Figure 1
+            address = (uint32_t)((bus << 16) | (device << 11) | ((uint32_t)0x80000000));
+                    // Write out the address
+            port_dword_out(0xCF8, address);
+            tmp = port_dword_in(0xCFC);
+
+            if (tmp == nodeID) {
+                // We found our device
+                pci->vendor_id = vendorID;
+                pci->device_id = deviceID;
+                pci->bus = bus;
+                pci->device = device;
+                pci->function = 0;
+
+                port_dword_out(0xCF8, (address | 0x10));
+                pci->BAR0 = port_dword_in(0xCFC);
+
+                port_dword_out(0xCF8, (address | 0x14));
+                pci->BAR1 = port_dword_in(0xCFC);
+
+                port_dword_out(0xCF8, (address | 0x3C));
+                pci->irq = (uint8_t)port_dword_in(0xCFC);
+
+                return;
+            }
+        }
+    }
+
+    // fallback values (do not exist)
+    pci->vendor_id = 0xFFFF;
+    pci->device_id = 0xFFFF;
+    pci->BAR0 = 0xFFFFFFFF;
+}
