@@ -63,5 +63,6 @@ void addTCPPacket(uint16_t port, struct TCPPacket* tcp);
 
 // feels more like internal functionality, but I need it here now
 void tcpTXBufferHandler();
+uint32_t getTCPBufferSize(uint16_t port);
 
 #endif

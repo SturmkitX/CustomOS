@@ -97,10 +97,11 @@ uint8_t initializeRTL8139() {
     port_byte_out(RTL8139BaseAddress + 0x37, 0x0C); // Sets the RE and TE bits high
 
     // Enable IRQ callback
-    uint8_t rtlIRQ = getIRQNumber(0x10EC, 0x8139);
-    kprintf("RTL IRQ Number: %u\n", rtlIRQ);
+    struct PCIAddressInfo pciInfo;
+    getDeviceInfo(0x10EC, 0x8139, &pciInfo);
+    kprintf("RTL IRQ Number: %u\n", pciInfo.irq);
 
-    register_interrupt_handler(rtlIRQ + 32, rtl8139_handler);   // our IRQ handlers are shifted by 32 positions (IRQ0=32), may be subject to change?
+    register_interrupt_handler(pciInfo.irq + 32, rtl8139_handler);   // our IRQ handlers are shifted by 32 positions (IRQ0=32), may be subject to change?
 
     return 0;
 }

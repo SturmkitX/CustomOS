@@ -161,7 +161,7 @@ uintptr_t parseTCPPacket(uintptr_t buffer, struct TCPPacket* tcp) {
     kprintf("%u %u %u\n", tcp->ip.total_length, IP_HEADER_LEN, headerSize);
     // while(1) {}
     uintptr_t payloadBuff = (uintptr_t)kmalloc(payloadSize);
-    memory_copy(payloadBuff, buffer + 28, payloadSize);
+    memory_copy(payloadBuff, buffer + headerSize, payloadSize);
 
     tcp->payload = payloadBuff;
     tcp->payloadSize = payloadSize;
@@ -199,7 +199,7 @@ void addTCPPacket(uint16_t port, struct TCPPacket* tcp) {
     // for now, we only accept packets from one connection
     // the packet should be already dropped if its seq does not match what we acknowledge
     
-    memory_copy(&entry->tcp[entry->size++], tcp, sizeof(struct TCPPacket));     // the object is already allocated in memory
+    memory_copy(&entry->tcp[(entry->size++) % TCP_TX_BUFFER_MAX_SIZE], tcp, sizeof(struct TCPPacket));     // the object is already allocated in memory
 }
 
 void handleTCPPacketRecv(uintptr_t buffer, struct IPPacket* ip) {
@@ -297,4 +297,12 @@ void tcpTXBufferHandler() {
 
     // free the payload memory
     // kfree(tcp->payload);
+}
+
+uint32_t getTCPBufferSize(uint16_t port) {
+    if (_tcp_entries[port] == NULL)
+        return NULL;
+    
+    struct TCPEntry* entry = _tcp_entries[port];
+    return (entry->size - entry->current_ptr);
 }

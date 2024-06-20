@@ -23,9 +23,6 @@ void checkBus(uint8_t bus);
 void checkAllBuses(void);
 void printHeaderBytes(uint8_t bus, uint8_t device, uint8_t function);
 
-uint32_t getDeviceBAR0(uint16_t vendorID, uint16_t deviceID);
-uint32_t getDeviceBAR1(uint16_t vendorID, uint16_t deviceID);
-uint8_t getIRQNumber(uint16_t vendorID, uint16_t deviceID);
 void getDeviceInfo(uint16_t vendorID, uint16_t deviceID, struct PCIAddressInfo* pci);
 
 #endif

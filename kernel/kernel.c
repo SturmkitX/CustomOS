@@ -260,7 +260,17 @@ void kernel_main() {
                 tcpTXBufferHandler();
             }
 
-            while (1) {tcpTXBufferHandler();}
+            uint32_t currentTick = get_ticks();    // quick hack to access current timer tick (a tick occurs every 20ms right now)
+            while (get_ticks() - currentTick < 100) {tcpTXBufferHandler();}    // perform all possible transmissions (responses) in the next 2 seconds
+
+            kprintf("Current TCP Poll size: %u\n", getTCPBufferSize(50002));
+            struct TCPPacket* respHTTP = pollTCP(50002);
+            do {
+                // if (respHTTP->payloadSize > 0)
+                    kprintf("%s %u", respHTTP->payload, respHTTP->payloadSize);
+                respHTTP = pollTCP(50002);
+            } while (respHTTP != NULL);
+
         } else if (strcmp(_k_kbd_buff, "AUDIO") == 0) {
             kprint("Checking AC97 status...\n");
 

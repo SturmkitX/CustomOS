@@ -5,5 +5,6 @@
 
 void sleep(uint32_t millis);
 void init_timer(uint32_t freq);
+uint32_t get_ticks();
 
 #endif

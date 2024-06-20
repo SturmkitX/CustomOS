@@ -35,3 +35,7 @@ void sleep(uint32_t millis) {
     while (tick - elapsedTicks < neededTicks) {}
 }
 
+uint32_t get_ticks() {
+    return tick;
+}
+
