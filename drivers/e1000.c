@@ -7,8 +7,11 @@
 #include "../cpu/ports.h"
 #include "../cpu/isr.h"
 #include "../libc/function.h"
+#include "../libc/mem.h"
 
 #define E1000_MMIO_START    0x00400000
+#define E1000_NUM_RX_DESC   16              //??
+#define E1000_NUM_TX_DESC   16
 
 // E82545EM-A (Copper, Server)
 #define E82545EM_VENDORID   0x8086
@@ -17,6 +20,14 @@
 #define E1000_REG_CTRL          0x00
 #define E1000_REG_EECD          0x10
 #define E1000_REG_EERD          0x14
+#define E1000_REG_RCTL         0x100   // Receive Control
+#define E1000_REG_TCTL         0x400   // Transmit Control
+#define E1000_REG_TIPG         0x410   // IPG
+#define E1000_REG_TDBAL            0x3800
+#define E1000_REG_TDBAH            0x3804
+#define E1000_REG_TDLEN            0x3808
+#define E1000_REG_TDHEAD            0x3810
+#define E1000_REG_TDTAIL            0x3818
 
 #define E1000_REG_CTRL_RESET    (1 << 26)
 #define E1000_REG_EECD_EE_PRES  (1 << 8)
@@ -27,7 +38,11 @@
 
 static struct PCIAddressInfo _pci_address;
 
+static struct e1000_tx_desc tx_descs[E1000_NUM_TX_DESC + 16];
+static uint32_t tx_curr = 0;
+
 static void E1000_handler(registers_t reg);
+static void E1000txinit();
 
 uint8_t identifyE1000() {
     // probe for E82545EM
@@ -108,6 +123,10 @@ uint8_t initializeE1000() {
 
     kprint("E1000 Software Reset done!\n");
 
+    E1000txinit();
+
+    kprint("E1000 TX Initialized\n");
+
     // Enable IRQ callback
     kprintf("RTL IRQ Number: %u\n", _pci_address.irq);
 
@@ -147,4 +166,76 @@ static void E1000_handler(registers_t reg) {
     kprint("Reached E1000 IRQ handler\n");
 
     UNUSED(reg);
+}
+
+// static void E1000rxinit()
+// {
+//     uint8_t * ptr;
+//     struct e1000_rx_desc *descs;
+
+//     // Allocate buffer for receive descriptors. For simplicity, in my case khmalloc returns a virtual address that is identical to it physical mapped address.
+//     // In your case you should handle virtual and physical addresses as the addresses passed to the NIC should be physical ones
+ 
+//     ptr = (uint8_t *)(kmalloc(sizeof(struct e1000_rx_desc)*E1000_NUM_RX_DESC + 16));
+
+//     descs = (struct e1000_rx_desc *)ptr;
+//     for(int i = 0; i < E1000_NUM_RX_DESC; i++)
+//     {
+//         rx_descs[i] = (struct e1000_rx_desc *)((uint8_t *)descs + i*16);
+//         rx_descs[i]->addr = (uint64_t)(uint8_t *)(kmalloc(8192 + 16));
+//         rx_descs[i]->status = 0;
+//     }
+
+//     mmio_dword_out(REG_TXDESCLO, (uint32_t)((uint64_t)ptr >> 32) );
+//     mmio_dword_out(REG_TXDESCHI, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
+
+//     mmio_dword_out(REG_RXDESCLO, (uint64_t)ptr);
+//     mmio_dword_out(REG_RXDESCHI, 0);
+
+//     mmio_dword_out(REG_RXDESCLEN, E1000_NUM_RX_DESC * 16);
+
+//     mmio_dword_out(REG_RXDESCHEAD, 0);
+//     mmio_dword_out(REG_RXDESCTAIL, E1000_NUM_RX_DESC-1);
+//     rx_cur = 0;
+//     mmio_dword_out(REG_RCTRL, RCTL_EN| RCTL_SBP| RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC  | RCTL_BSIZE_8192);
+    
+// }
+
+
+static void E1000txinit()
+{    
+    uint32_t E1000BaseAddress = _pci_address.BAR0;
+
+    for(int i = 0; i < E1000_NUM_TX_DESC; i++)
+    {
+        tx_descs[i].addr = 0;
+        tx_descs[i].cmd = 0;
+        tx_descs[i].rsv_sta = 1;   // DD
+    }
+
+    // All our addresses are 32 bit
+    mmio_dword_out(E1000BaseAddress + E1000_REG_TDBAH, 0);
+    mmio_dword_out(E1000BaseAddress + E1000_REG_TDBAL, (uintptr_t)tx_descs);
+
+
+    //now setup total length of descriptors
+    mmio_dword_out(E1000BaseAddress + E1000_REG_TDLEN, E1000_NUM_TX_DESC * 16);
+
+
+    //setup numbers
+    mmio_dword_out( E1000BaseAddress + E1000_REG_TDHEAD, 0);
+    mmio_dword_out( E1000BaseAddress + E1000_REG_TDTAIL, 0);
+    tx_curr = 0;
+    mmio_dword_out(E1000BaseAddress + E1000_REG_TCTL,  (1 << 1) // EN
+        | (1 << 3)  // PSP
+        | (15 << 4) // CT
+        | (64 << 12)   // Full Duplex Collision Distance
+        | (1 << 24));
+
+    // This line of code overrides the one before it but I left both to highlight that the previous one works with e1000 cards, but for the e1000e cards 
+    // you should set the TCTRL register as follows. For detailed description of each bit, please refer to the Intel Manual.
+    // In the case of I217 and 82577LM packets will not be sent if the TCTRL is not configured using the following bits.
+    // mmio_dword_out(REG_TCTRL,  0b0110000000000111111000011111010);
+    mmio_dword_out(E1000BaseAddress + E1000_REG_TIPG,  0x0060200A);
+
 }

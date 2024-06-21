@@ -1,4 +1,5 @@
 #include "mem.h"
+#include "function.h"
 
 void memory_copy(void *dest, void *source, int nbytes) {
     int i;
@@ -33,12 +34,8 @@ void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
     /* Save also the physical address */
     if (phys_addr) *phys_addr = free_mem_addr;
 
-    uint32_t ret = free_mem_addr + 4;
-
-    uint32_t* header = (uint32_t*)free_mem_addr;
-    *header = size;
-    free_mem_addr += (size + 4); /* Remember to increment the pointer and size header */
-    return (void*)ret;
+    free_mem_addr += size; /* Remember to increment the pointer and size header */
+    return (void*)free_mem_addr;
 }
 
 void* kmalloc(size_t size) {
@@ -61,9 +58,9 @@ void* krealloc(void* buff, size_t size)
 
 void kfree(void* buff)
 {
-    uint32_t* header = ((uint32_t*)buff) - 1;
-
+    // uint32_t* header = ((uint32_t*)buff) - 1;
+    UNUSED(buff);
     // for now, we only store the size of the block in the header
     // set it to 0, maybe we will do some actual deallocation in the future
-    *header = 0;
+    // *header = 0;
 }
