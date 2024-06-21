@@ -20,8 +20,8 @@ void memory_set(void *dest, uint8_t val, uint32_t len) {
  // EDIT: I change to 0x200000, cause the original caused the FAT initialization process to overwrite some other data
  // including video memory, also brutally crashed QEMU at some point
  // hopefully, at this point in memory, no one will be able to interrupt us
- // EDIT 2: Changed to 0x400000 in order to make room for kernel code
-uint32_t free_mem_addr = 0x400000;
+ // EDIT 2: Changed to 0x600000 in order to make room for kernel code and MMIO (previously 0x400000, each 0x100000 is 1MB)
+uint32_t free_mem_addr = 0x600000;
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
 void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {

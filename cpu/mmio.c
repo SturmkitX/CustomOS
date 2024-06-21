@@ -1,0 +1,25 @@
+#include "mmio.h"
+
+uint8_t mmio_byte_in(uintptr_t addr) {
+    return *((volatile uint8_t*)(addr));
+}
+
+uint16_t mmio_word_in(uintptr_t addr) {
+    return *((volatile uint16_t*)(addr));
+}
+
+uint32_t mmio_dword_in(uintptr_t addr) {
+    return *((volatile uint32_t*)(addr));
+}
+
+void mmio_byte_out(uintptr_t addr, uint8_t value) {
+    (*((volatile uint8_t*)(addr)))=(value);
+}
+
+void mmio_word_out(uintptr_t addr, uint16_t value) {
+    (*((volatile uint16_t*)(addr)))=(value);
+}
+
+void mmio_dword_out(uintptr_t addr, uint32_t value) {
+    (*((volatile uint32_t*)(addr)))=(value);
+}

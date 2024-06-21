@@ -21,6 +21,7 @@
 
 #include "../drivers/ac97.h"
 #include "../cpu/timer.h"
+#include "../drivers/e1000.h"
 
 static char _k_kbd_buff[256];
 
@@ -307,6 +308,17 @@ void kernel_main() {
 
             sleep(30000);
             kprintf("Done sleeping!\n");
+        } else if (strcmp(_k_kbd_buff, "E1000") == 0) {
+            kprint("Checking E1000 status...\n");
+
+            uint8_t netExists = identifyE1000();
+            kprintf("E1000 Present: %u\n", netExists);
+            
+            initializeE1000();
+
+            // Get MAC Address
+            uint8_t* macAddr = E1000GetMACAddress();
+            kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
