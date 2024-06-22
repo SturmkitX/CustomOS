@@ -8,6 +8,7 @@
 #include "../libc/globals.h"
 
 isr_t interrupt_handlers[256];
+isr_t soft_interrupt_handlers[256];
 uint32_t TestIntNumber = 0;
 
 /* Can't do this with a loop because we need the address
@@ -78,6 +79,7 @@ void isr_install() {
 
     // create custom interrupt
     set_idt_gate(0x90, (uint32_t)testirq);
+    set_idt_gate(0x91, (uint32_t)forkirq);
 
     set_idt(); // Load with ASM
 }
@@ -135,13 +137,20 @@ void register_interrupt_handler(uint8_t n, isr_t handler) {
     interrupt_handlers[n] = handler;
 }
 
+void register_soft_interrupt_handler(uint8_t n, isr_t handler) {
+    soft_interrupt_handlers[n - 0x90] = handler;
+}
+
 void irq_handler(registers_t *r) {
     /* After every interrupt we need to send an EOI to the PICs
      * or they will not send another interrupt again */
 
     uint32_t intIndex = (r->int_no & 0xff);
-    if (intIndex >= 40) port_byte_out(0xA0, 0x20); /* slave */
-    port_byte_out(0x20, 0x20); /* master */
+    if (intIndex < 0x90) {
+        if (intIndex >= 40) port_byte_out(0xA0, 0x20); /* slave */
+        port_byte_out(0x20, 0x20); /* master */
+    }
+    
 
     /*
         For software interrupts, values are greater than 0x90
@@ -157,6 +166,11 @@ void irq_handler(registers_t *r) {
     /* Handle the interrupt in a more modular way */
     if (interrupt_handlers[intIndex] != 0) {
         isr_t handler = interrupt_handlers[intIndex];
+        handler(r);     // should probably do it in another thread
+    }
+
+    if (intIndex >= 0x90 && soft_interrupt_handlers[intIndex - 0x90] != 0) {
+        isr_t handler = soft_interrupt_handlers[intIndex - 0x90];
         handler(r);     // should probably do it in another thread
     }
 }

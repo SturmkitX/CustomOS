@@ -112,6 +112,7 @@ global irq13
 global irq14
 global irq15
 global testirq
+global forkirq
 
 ; 0: Divide By Zero Exception
 isr0:
@@ -383,5 +384,10 @@ irq15:
 testirq:
 	push byte 0x90  ; nu am idee ce e cu astea, dar pare sa mearga daca dau int $0x90
 	push byte 0x90
+	jmp irq_common_stub
+
+forkirq:
+	push byte 0x91  ; nu am idee ce e cu astea, dar pare sa mearga daca dau int $0x90
+	push byte 0x91
 	jmp irq_common_stub
 

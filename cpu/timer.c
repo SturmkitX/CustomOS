@@ -2,6 +2,10 @@
 #include "isr.h"
 #include "ports.h"
 #include "../libc/function.h"
+#include "../cpu/thread.h"
+#include "../libc/mem.h"
+
+#include <stddef.h>
 
 uint32_t tick = 0;
 
@@ -9,7 +13,12 @@ static uint32_t millis_per_tick = 1;    // UNINITIALIZED VALUE
 
 static void timer_callback(registers_t *regs) {
     tick++;
-    UNUSED(regs);
+
+    // we will schedule threads based on our ticks
+    if (tick % 100 == 0) {
+        kprintf("Scheduling next thread (NULL = %u)\n", getCurrentThread() == NULL);
+        scheduleNext(regs);
+    }
 }
 
 void init_timer(uint32_t freq) {

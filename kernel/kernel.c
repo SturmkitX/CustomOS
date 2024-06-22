@@ -23,6 +23,8 @@
 #include "../cpu/timer.h"
 #include "../drivers/e1000.h"
 
+#include "../cpu/thread.h"
+
 static char _k_kbd_buff[256];
 
 void kernel_main() {
@@ -319,6 +321,15 @@ void kernel_main() {
             // Get MAC Address
             uint8_t* macAddr = E1000GetMACAddress();
             kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
+        } else if (strcmp(_k_kbd_buff, "THREAD") == 0) {
+            kprint("Testing software Threads\n");
+
+            init_thread();
+            uint32_t forkId = fork();
+
+            kprintf("Fork ID: %u\n", forkId);
+
+            while (1) {}
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
