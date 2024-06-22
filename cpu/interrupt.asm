@@ -381,13 +381,3 @@ irq15:
 	push byte 47
 	jmp irq_common_stub
 
-testirq:
-	push byte 0x90  ; nu am idee ce e cu astea, dar pare sa mearga daca dau int $0x90
-	push byte 0x90
-	jmp irq_common_stub
-
-forkirq:
-	push byte 0x91  ; nu am idee ce e cu astea, dar pare sa mearga daca dau int $0x90
-	push byte 0x91
-	jmp irq_common_stub
-

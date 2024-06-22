@@ -14,6 +14,8 @@ void addThread(struct thread_t* thread, void (*fun)());
 void scheduleNext(registers_t* dest);
 struct thread_t* getCurrentThread();
 uint32_t fork();
-void init_thread();
+void fork_callback(registers_t *regs);
+uint8_t is_fork_pending();
+void set_fork_complete();
 
 #endif

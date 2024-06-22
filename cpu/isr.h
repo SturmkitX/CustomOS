@@ -54,9 +54,6 @@ extern void irq13();
 extern void irq14();
 extern void irq15();
 
-extern void testirq();
-extern void forkirq();
-
 #define IRQ0 32
 #define IRQ1 33
 #define IRQ2 34
@@ -73,9 +70,6 @@ extern void forkirq();
 #define IRQ13 45
 #define IRQ14 46
 #define IRQ15 47
-
-#define TESTIRQ0 144
-#define FORKIRQ   145
 
 /* Struct which aggregates many registers.
  * It matches exactly the pushes on interrupt.asm. From the bottom:
@@ -97,6 +91,5 @@ void irq_install();
 
 typedef void (*isr_t)(registers_t*);
 void register_interrupt_handler(uint8_t n, isr_t handler);
-void register_soft_interrupt_handler(uint8_t n, isr_t handler);
 
 #endif

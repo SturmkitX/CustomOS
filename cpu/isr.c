@@ -77,10 +77,6 @@ void isr_install() {
     set_idt_gate(46, (uint32_t)irq14);
     set_idt_gate(47, (uint32_t)irq15);
 
-    // create custom interrupt
-    set_idt_gate(0x90, (uint32_t)testirq);
-    set_idt_gate(0x91, (uint32_t)forkirq);
-
     set_idt(); // Load with ASM
 }
 
@@ -137,40 +133,19 @@ void register_interrupt_handler(uint8_t n, isr_t handler) {
     interrupt_handlers[n] = handler;
 }
 
-void register_soft_interrupt_handler(uint8_t n, isr_t handler) {
-    soft_interrupt_handlers[n - 0x90] = handler;
-}
-
 void irq_handler(registers_t *r) {
     /* After every interrupt we need to send an EOI to the PICs
      * or they will not send another interrupt again */
 
     uint32_t intIndex = (r->int_no & 0xff);
-    if (intIndex < 0x90) {
-        if (intIndex >= 40) port_byte_out(0xA0, 0x20); /* slave */
-        port_byte_out(0x20, 0x20); /* master */
-    }
-    
-
-    /*
-        For software interrupts, values are greater than 0x90
-        For some reason, they are first taken as signed bytes, which in turn results in negative ints
-        For the Standard ones, this is not an issue.
-    */
+    if (intIndex >= 40) port_byte_out(0xA0, 0x20); /* slave */
+    port_byte_out(0x20, 0x20); /* master */
 
     TestIntNumber++;
-    if (intIndex == 0x90) {
-        kprint("Got Software Interrupt 0x90!!\n");
-    }
     
     /* Handle the interrupt in a more modular way */
     if (interrupt_handlers[intIndex] != 0) {
         isr_t handler = interrupt_handlers[intIndex];
-        handler(r);     // should probably do it in another thread
-    }
-
-    if (intIndex >= 0x90 && soft_interrupt_handlers[intIndex - 0x90] != 0) {
-        isr_t handler = soft_interrupt_handlers[intIndex - 0x90];
         handler(r);     // should probably do it in another thread
     }
 }
@@ -189,5 +164,4 @@ void irq_install() {
     /* IRQ1: keyboard */
     init_keyboard();
 
-    register_interrupt_handler(TESTIRQ0, test_callback);
 }

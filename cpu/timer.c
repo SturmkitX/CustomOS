@@ -14,6 +14,11 @@ static uint32_t millis_per_tick = 1;    // UNINITIALIZED VALUE
 static void timer_callback(registers_t *regs) {
     tick++;
 
+    if (is_fork_pending()) {
+        fork_callback(regs);
+        set_fork_complete();
+    }
+
     // we will schedule threads based on our ticks
     if (tick % 100 == 0) {
         kprintf("Scheduling next thread (NULL = %u)\n", getCurrentThread() == NULL);

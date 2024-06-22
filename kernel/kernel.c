@@ -67,9 +67,6 @@ void kernel_main() {
             for (i=0; i < size; i++) {
                 buff[i] = 0xab;
             }
-        } else if (strcmp(_k_kbd_buff, "TEST") == 0) {
-            kprint("Trying out our new INT!\n");
-            asm("int $0x90");
         } else if (strcmp(_k_kbd_buff, "FS") == 0) {
             kprint("Opening file system (FAT32)!\n");
             f32* fat32 = makeFilesystem(NULL);
@@ -324,7 +321,6 @@ void kernel_main() {
         } else if (strcmp(_k_kbd_buff, "THREAD") == 0) {
             kprint("Testing software Threads\n");
 
-            init_thread();
             uint32_t forkId = fork();
 
             kprintf("Fork ID: %u\n", forkId);
