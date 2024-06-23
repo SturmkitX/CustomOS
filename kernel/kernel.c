@@ -22,6 +22,7 @@
 #include "../drivers/ac97.h"
 #include "../cpu/timer.h"
 #include "../drivers/e1000.h"
+#include "../drivers/vga.h"
 
 static char _k_kbd_buff[256];
 
@@ -319,6 +320,18 @@ void kernel_main() {
             // Get MAC Address
             uint8_t* macAddr = E1000GetMACAddress();
             kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
+        } else if (strcmp(_k_kbd_buff, "VGA") == 0) {
+            kprint("Trying to put pixel in VGA\n");
+
+            // init_vga();
+            uintptr_t garbage = (uintptr_t) kmalloc(64000);  // this is like half the song, 32000 sectors
+
+            kprint("Garbage allocated\n");
+
+            kprint("Loading the picture...\n");
+            ata_pio_read48(256, 125, garbage);
+
+            draw_icon(0, 0, 320, 200, garbage);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

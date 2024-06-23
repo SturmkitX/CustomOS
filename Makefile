@@ -19,10 +19,11 @@ DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 # 	${DDPATH} conv=notrunc if=kernel.bin of=hdd1-raw2.img bs=1b seek=24
 
 # music.raw has 60496 sectors
-all: boot/bootsect.bin kernel.bin stage2.bin music.raw
+all: boot/bootsect.bin kernel.bin stage2.bin music.raw pic2.raw
 	${DDPATH} conv=notrunc if=boot/bootsect.bin of=hdda.img bs=1b
 	${DDPATH} conv=notrunc if=stage2.bin of=hdda.img bs=1b seek=1
 	${DDPATH} conv=notrunc if=kernel.bin of=hdda.img bs=1b seek=24
+	${DDPATH} conv=notrunc if=pic2.raw of=hdda.img bs=4K seek=32
 #	${DDPATH} conv=notrunc if=music.raw of=hdda.img bs=4K seek=32
 
 testapp.bin: app_test/app_entry.o app_test/app_main.o drivers/screen.o libc/mem.o libc/string.o cpu/ports.o
@@ -49,7 +50,7 @@ kernel.elf: boot/kernel_entry.o ${OBJ}
 
 run:
 #	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
-	qemu-system-x86_64 -hda hdda.img -m 512M -device e1000-82545em,netdev=u1 -netdev user,id=u1 -object filter-dump,id=f1,netdev=u1,file=dump.dat -audio driver=dsound,model=ac97
+	qemu-system-x86_64 -hda hdda.img -m 512M -device e1000-82545em,netdev=u1 -netdev user,id=u1 -object filter-dump,id=f1,netdev=u1,file=dump.dat -audio driver=dsound,model=ac97 -vga std
 #	qemu-system-x86_64 -drive if=none,id=stick,format=raw,file=hdda.img -device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=stick -m 512M -device rtl8139,netdev=u1 -netdev user,id=u1 -object filter-dump,id=f1,netdev=u1,file=dump.dat -audio driver=dsound,model=ac97
 
 # Open the connection to qemu and load our kernel-object file with symbols
