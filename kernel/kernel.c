@@ -24,6 +24,8 @@
 #include "../drivers/e1000.h"
 #include "../drivers/vga.h"
 
+#include "../libc/function.h"
+
 static char _k_kbd_buff[256];
 
 void kernel_main() {
@@ -324,14 +326,40 @@ void kernel_main() {
             kprint("Trying to put pixel in VGA\n");
 
             // init_vga();
-            uintptr_t garbage = (uintptr_t) kmalloc(64000);  // this is like half the song, 32000 sectors
+            uintptr_t garbage = (uintptr_t) kmalloc(921600 * 2);  // 24 bit color JPG, 900 KB (loading screen + main photo)
 
             kprint("Garbage allocated\n");
 
             kprint("Loading the picture...\n");
-            ata_pio_read48(256, 125, garbage);
+            ata_pio_read48(256, 3600, garbage);
 
-            draw_icon(0, 0, 320, 200, garbage);
+            draw_icon(0, 0, 640, 480, garbage);
+            // fill_rect(0, 0, 320, 80, 0x00FF0000);
+
+            // fill_rect(0, 0, 640, 480, 0x00FF0000);
+            // uint32_t i,j;
+            // for (i=0; i < 480; i++) {
+            //     for (j=0; j < 640; j++) {
+            //         putpixel(j, i, 0x0000FF00);
+            //         sleep(1);
+            //     }
+            // }
+
+            uintptr_t music = (uintptr_t) kmalloc(63428856);  // 123884 sectors, ~60 MB
+
+            kprint("Music allocated\n");
+
+            uint32_t readSec = 0;
+            while (readSec < 123884) {
+                uint32_t toread = MIN(123884 - readSec, 32000);
+                ata_pio_read48(4000 + readSec, toread, music + readSec * 512);
+                readSec += toread;
+            }
+
+            // Change to main photo and play music
+            draw_icon(0, 0, 640, 480, garbage + 1800 * 512);
+
+            playAudio(music, 63428856);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
