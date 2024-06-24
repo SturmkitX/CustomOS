@@ -26,9 +26,6 @@
 
 #include "../libc/function.h"
 
-#define DOOM_IMPLEMENTATION
-#include "../PureDOOM/PureDOOM.h"
-
 static char _k_kbd_buff[256];
 
 void kernel_main() {
@@ -364,8 +361,8 @@ void kernel_main() {
 
             playAudio(music, 63428856);
         } else if (strcmp(_k_kbd_buff, "DOOM") == 0) {
-            char argv[1][17] = {"C:\\doom\\doom.exe"};
-            doom_init(1, argv, 0);
+            // char argv[1][17] = {"C:\\doom\\doom.exe"};
+            // doom_init(1, argv, 0);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
