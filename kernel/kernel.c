@@ -26,6 +26,7 @@
 
 #include "../libc/function.h"
 #include "../drivers/vfs.h"
+#include "doom.h"
 
 static char _k_kbd_buff[256];
 
@@ -331,6 +332,47 @@ void kernel_main() {
                 uint32_t wr = vfs_write(vfs, msg, strlen(msg));
                 kprintf("Written characters: %u\n", wr);
             }
+        } else if (strcmp(_k_kbd_buff, "VFS2") == 0) {
+            struct VFSEntry* vfs = vfs_open("test2.txt", "wa");
+            if (vfs != NULL) {
+                kprint("Write file not empty\n");
+                char* msg = "Al 2lea fisier";
+                uint32_t wr = vfs_write(vfs, msg, strlen(msg));
+                kprintf("Written characters: %u\n", wr);
+            }
+        } else if (strcmp(_k_kbd_buff, "VFS3") == 0) {
+            struct VFSEntry* vfs = vfs_open("test2.txt", "wa");
+            if (vfs != NULL) {
+                kprint("Reading from file\n");
+                char msg[20];
+
+                uint32_t readb = vfs_read(vfs, msg, 10);
+                kprintf("Read Bytes = %u, EOF = %u\n", readb, vfs_eof(vfs));
+
+                readb = vfs_read(vfs, msg + 10, 20);
+                kprintf("Read Bytes = %u, EOF = %u\n", readb, vfs_eof(vfs));    // should read 4 bytes, what is left
+
+                msg[14] = 0;
+                kprintf("Message is %s\n", msg);
+            }
+        } else if (strcmp(_k_kbd_buff, "VFS4") == 0) {
+            struct VFSEntry* vfs = vfs_open("test3.txt", "wa");
+            if (vfs != NULL) {
+                kprint("Testing some sick seeks\n");
+
+                char msg[20];
+
+                vfs_write(vfs, "Radullescu", 10);
+                vfs_read(vfs, msg, 20);
+                kprintf("First read: %s\n", msg);
+
+                vfs_seek(vfs, 0, SEEK_SET);
+                vfs_write(vfs, "Jonah", 6);
+
+                vfs_seek(vfs, 0, SEEK_SET);
+                vfs_read(vfs, msg, 20);
+                kprintf("Second read: %s\n", msg);
+            }
         } else if (strcmp(_k_kbd_buff, "VGA") == 0) {
             kprint("Trying to put pixel in VGA\n");
 
@@ -370,8 +412,8 @@ void kernel_main() {
 
             playAudio(music, 63428856);
         } else if (strcmp(_k_kbd_buff, "DOOM") == 0) {
-            // char argv[1][17] = {"C:\\doom\\doom.exe"};
-            // doom_init(1, argv, 0);
+            kprint("Initializing our doom...\n");
+            initialize_doom();
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
