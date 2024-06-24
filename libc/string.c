@@ -100,3 +100,11 @@ int k_tolower(int c) {
     }
     return c;
 }
+
+int strchr(char s[], char n) {
+    int i;
+    for (i = 0; s[i] != n; i++) {
+        if (s[i] == '\0') return -1;
+    }
+    return i;
+}

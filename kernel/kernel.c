@@ -25,6 +25,7 @@
 #include "../drivers/vga.h"
 
 #include "../libc/function.h"
+#include "../drivers/vfs.h"
 
 static char _k_kbd_buff[256];
 
@@ -322,6 +323,14 @@ void kernel_main() {
             // Get MAC Address
             uint8_t* macAddr = E1000GetMACAddress();
             kprintf("NET MAC Address: %x:%x:%x:%x:%x:%x\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
+        } else if (strcmp(_k_kbd_buff, "VFS1") == 0) {
+            struct VFSEntry* vfs = vfs_open("test1.txt", "wa");
+            if (vfs != NULL) {
+                kprint("Write file not empty\n");
+                char* msg = "Ce faci mai pula?";
+                uint32_t wr = vfs_write(vfs, msg, strlen(msg));
+                kprintf("Written characters: %u\n", wr);
+            }
         } else if (strcmp(_k_kbd_buff, "VGA") == 0) {
             kprint("Trying to put pixel in VGA\n");
 

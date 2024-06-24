@@ -169,6 +169,9 @@ void ata_pio_read28(uint32_t LBA, uint8_t sectorcount, uint8_t *target) {
  */
 
 void ata_pio_read48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
+    if (sectorcount == 0)
+        return;     // otherwise it will block operation
+
     // HARD CODE MASTER (for now)
     port_byte_out(ATA_PRIMARY_DRIVE_HEAD, 0x40);                     // Select master
     port_byte_out(ATA_PRIMARY_SECCOUNT, (sectorcount >> 8) & 0xFF ); // sectorcount high
@@ -206,6 +209,8 @@ void ata_pio_read48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
  * each write command completes.
  */
 void ata_pio_write48(uint64_t LBA, uint16_t sectorcount, uint8_t *target) {
+    if (sectorcount == 0)
+        return;
 
     // HARD CODE MASTER (for now)
     port_byte_out(ATA_PRIMARY_DRIVE_HEAD, 0x40);                     // Select master

@@ -14,6 +14,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
     uint32_t i;
 
     // read file table
+    kprintf("Sizeof headers = %u\n", sizeof(headers));
     ata_pio_read48(VFS_START_SECTOR, sizeof(headers) / 512, headers);
 
     for (i=0; i < VFS_ENTRIES_MAX_NUM && headers[i].name[0] != 0; i++) {
@@ -21,7 +22,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
             kprintf("Found file %s\n", filename);
 
             headers[i].current = 0;
-            if (mode[0] == 'w') {
+            if (mode[0] == 'w' && strchr(mode, 'a') < 0) {
                 headers[i].size_bytes = 0;
                 headers[i].size_sectors = 0;
             }
@@ -81,7 +82,7 @@ int vfs_write(struct VFSEntry* handle, const void *buf, int count)
 {
     uint8_t* tmp = (uint8_t*) FILE_OPS_MEM;
 
-    ata_pio_read48(handle->start_sector, handle->size_sectors, tmp);
+    if (handle->size_bytes > 0) ata_pio_read48(handle->start_sector, handle->size_sectors, tmp);
     memory_copy(tmp + handle->size_bytes, buf, count);
 
     handle->size_bytes += count;
@@ -89,11 +90,15 @@ int vfs_write(struct VFSEntry* handle, const void *buf, int count)
 
     // let's flush the contents immediately
     ata_pio_write48(handle->start_sector, handle->size_sectors, tmp);
+    kprintf("Write data: Sector = %u (%x), size = %u\n", handle->start_sector, handle->start_sector, handle->size_sectors);
 
     // in order not to disrupt alignment (for now), I will compute the index
     uint32_t index = (handle->start_sector - VFS_START_SECTOR - sizeof(headers) / 512) / 8000;
     uint32_t sector = index * sizeof(struct VFSEntry) / 512;
+    kprintf("Write index = %u, sector = %u\n", index, sector);
+    kprintf("Values to write: %u %u %u %u\n", handle->start_sector, handle->size_bytes, handle->size_sectors, handle->current);
     ata_pio_write48(VFS_START_SECTOR + sector, 1, (uintptr_t)headers + sector * 512);
+    kprintf("Write header: Sector = %u (%x)\n", VFS_START_SECTOR, VFS_START_SECTOR);
 
     return count;
 }

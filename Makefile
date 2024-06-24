@@ -19,13 +19,11 @@ DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
 # 	${DDPATH} conv=notrunc if=kernel.bin of=hdd1-raw2.img bs=1b seek=24
 
 # music.raw has 60496 sectors
-all: boot/bootsect.bin kernel.bin stage2.bin music.raw pic2.raw pic-loading.raw 5bani.raw
+all: boot/bootsect.bin kernel.bin stage2.bin
+#	${DDPATH} if=/dev/zero of=hdda.img bs=1M count=512
 	${DDPATH} conv=notrunc if=boot/bootsect.bin of=hdda.img bs=1b
 	${DDPATH} conv=notrunc if=stage2.bin of=hdda.img bs=1b seek=1
 	${DDPATH} conv=notrunc if=kernel.bin of=hdda.img bs=1b seek=24
-	${DDPATH} conv=notrunc if=pic-loading.raw of=hdda.img bs=4K seek=532
-	${DDPATH} conv=notrunc if=pic2.raw of=hdda.img bs=4K seek=757
-	${DDPATH} conv=notrunc if=5bani.raw of=hdda.img bs=4K seek=1000
 #	${DDPATH} conv=notrunc if=music.raw of=hdda.img bs=4K seek=32
 
 testapp.bin: app_test/app_entry.o app_test/app_main.o drivers/screen.o libc/mem.o libc/string.o cpu/ports.o
