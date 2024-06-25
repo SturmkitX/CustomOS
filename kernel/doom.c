@@ -1,7 +1,6 @@
 #include "doom.h"
 
-#define DOOM_IMPLEMENTATION 
-#include "../PureDOOM/PureDOOM.h"
+#include "../PureDOOM/src/DOOM/DOOM.h"
 
 #include "../drivers/vfs.h"
 #include "../drivers/screen.h"
@@ -27,12 +26,15 @@ static void custom_close_impl(void* handle)
 
 static int custom_read_impl(void* handle, void *buf, int count)
 {
-    // kprintf("DOOM Reading %u bytes from HDD\n", count);
+    // write_string_serial("DOOM Reading from HDD bytes");
+    // write_string_serial(doom_itoa(count, 10));
+    // write_string_serial("\r\n");
     return vfs_read(handle, buf, count);
 }
 
 static int custom_write_impl(void* handle, const void *buf, int count)
 {
+    write_string_serial("Doom is writing to file\n");
     return vfs_write(handle, buf, count);
 }
 
@@ -53,12 +55,19 @@ static int custom_eof_impl(void* handle)
 
 static void custom_print_impl(const char* str)
 {
-    kprint(str);
+    write_string_serial(str);
 }
 
 static void* custom_malloc_impl(int size)
 {
     uintptr_t tmp = kmalloc((size_t)size);
+    // char msg[50];
+
+    // write_string_serial("DOOM Allocated memory at ");
+    // write_string_serial(doom_itoa(tmp, 10));
+    // write_string_serial(" with size ");
+    // write_string_serial(doom_itoa(size, 10));
+    // write_string_serial("\r\n");
     return tmp;   // its current implementation does not really free memory, so app may crash in a couple of seconds due to insufficient memory
 }
 
@@ -71,7 +80,7 @@ static void custom_gettime_impl(int* sec, int* usec)
 {
     uint32_t ticks = get_ticks();   // each tick is 1 ms (0.001 s, 1000 us)
 
-    *sec = ticks / 1000;
+    *sec = ticks / 1000 + 1719346785;
     *usec = (ticks % 1000) * 1000;
 }
 
@@ -112,22 +121,19 @@ void initialize_doom() {
     char** argv = {{"C:\\doom\\doom.exe"}};
     doom_init(1, argv, 0);
 
-    // uint32_t i;
+    uint32_t i;
 
-    // kprintf("Waiting for like 5 seconds\n");
-    // uint32_t els = 1000 / 35;   // time between frames
-    // uint32_t totalframes = 35 * 5;
+    write_string_serial("Waiting for like 5 seconds\r\n");
+    uint32_t els = 1000 / 35;   // time between frames
+    uint32_t totalframes = 35 * 5;
 
-    // while (totalframes > 0) {
-    //     doom_update();
-    //     sleep(els);
-    //     totalframes--;
-    // }
+    write_string_serial("Is alloc done before update?\r\n");
 
-    // kprintf("Updated DOOM for 5 seconds\n");
+    while (1) {
+        doom_update();
+        uint8_t* fb = doom_get_framebuffer(1);
+        draw_icon(0, 0, 320, 200, fb);
+    }
 
-    // uint8_t* fb = doom_get_framebuffer(1);
-    // for (i=0; i < 320; i++) {
-    //     kprintf("%u ", fb[i]);
-    // }
+    kprintf("Updated DOOM for 5 seconds\n");
 }

@@ -110,7 +110,7 @@ void putpixel(int pos_x, int pos_y, uint32_t VGA_COLOR) {
     if (_pci_address.vendor_id == 0) {
         getDeviceInfo(0x1234, 0x1111, &_pci_address);   // QEMU VGA
     }
-    unsigned char* location = (unsigned char*)(_pci_address.BAR0) + (SCREEN_WIDTH * pos_y + pos_x) * PIXEL_WIDTH;
+    unsigned char* location = (unsigned char*)(VGA_START_ADDR) + (SCREEN_WIDTH * pos_y + pos_x) * PIXEL_WIDTH;
     
     switch (PIXEL_WIDTH) {
         case 1:     // 8 bit, 256 colors (should follow VGA palette)
@@ -130,8 +130,16 @@ void draw_icon(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uintptr_t pixels)
     uint32_t i,j,l;
     uint8_t* pxs = (uint8_t*)pixels;
     for (l = j = 0; l < h; l++) {
-        for (i = 0; i < w; i++, j+=3) {
-            uint32_t pixel = (pxs[j] << 16) + (pxs[j + 1] << 8) + (pxs[j + 2]);
+        for (i = 0; i < w; i++, j+=PIXEL_WIDTH) {
+            uint32_t pixel = 0;
+            switch (PIXEL_WIDTH) {
+                case 1:
+                    pixel = pxs[j];
+                    break;
+                case 3:
+                    pixel = (pxs[j] << 16) + (pxs[j + 1] << 8) + (pxs[j + 2]);
+                    break;
+            }
             putpixel(x + i, y + l, pixel);
         }
     }

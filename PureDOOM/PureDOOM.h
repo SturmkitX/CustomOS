@@ -9388,8 +9388,10 @@ void D_Display(void)
 //
 void D_UpdateWipe(void)
 {
+    doom_print("Reached UpdateWipe\r\n");
     if (wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, 1))
         is_wiping_screen = false;
+    doom_print("Just wiped screen\r\n");
 }
 
 
@@ -9409,7 +9411,7 @@ void D_DoomLoop(void)
 
     I_InitGraphics();
 #endif
-
+    doom_print("Reached DoomLoop\r\n");
     // while (1)
     {
         // frame syncronous IO operations
@@ -12039,6 +12041,8 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
         wipe_initMelt, wipe_doMelt, wipe_exitMelt
     };
 
+    doom_print("Before MarkRect\r\n");
+
     void V_MarkRect(int, int, int, int);
 
     // initial stuff
@@ -12052,6 +12056,7 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
 
     // do a piece of wipe-in
     V_MarkRect(0, 0, width, height);
+    doom_print("After MarkRect\r\n");
     rc = (*wipes[wipeno * 3 + 1])(width, height, ticks);
     //  V_DrawBlock(x, y, 0, width, height, wipe_scr); // DEBUG
 
