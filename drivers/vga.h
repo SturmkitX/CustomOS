@@ -3,9 +3,10 @@
 
 #include <stdint.h>
 
-#define SCREEN_WIDTH    320
-#define SCREEN_HEIGHT   200
-#define PIXEL_WIDTH     1
+#define SCREEN_WIDTH    640
+#define SCREEN_HEIGHT   480
+#define PIXEL_WIDTH     3
+#define STRETCH_FACTOR  1
 
 void putpixel(int pos_x, int pos_y, uint32_t VGA_COLOR);
 uint8_t init_vga();

@@ -1,5 +1,5 @@
-C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c boot_stage2/*.c)
-HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h)
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c boot_stage2/*.c PureDOOM/src/DOOM/*.c)
+HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h PureDOOM/src/DOOM/*.h)
 # Nice syntax for file extension replacement
 OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
 
@@ -7,9 +7,10 @@ OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o}
 CC = i686-elf-gcc
 GDB = i686-elf-gdb
 # -g: Use debugging symbols in gcc
-CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
+CFLAGS = -g -O0 -ffreestanding -Wall -Wextra -fno-exceptions -m32
 
-DDPATH = "C:\Users\Bogdan Rogoz\Desktop\os-dev\w64devkit\bin\dd.exe"
+DDPATH = "..\w64devkit\bin\dd.exe"
+FINDPATH = "..\w64devkit\bin\find.exe"
 #DDPATH = dd
 
 # all: boot/bootsect.bin kernel.bin stage2.bin
@@ -46,7 +47,7 @@ stage2.bin: boot_stage2/stage2.o drivers/screen.o libc/mem.o libc/string.o cpu/p
 
 # Used for debugging purposes
 kernel.elf: boot/kernel_entry.o ${OBJ}
-	i686-elf-ld -o $@ -Ttext 0x1000 $^ 
+	i686-elf-ld -o $@ -Ttext 0x00203000 $^ 
 
 run:
 #	qemu-system-x86_64 -hda hdd1-raw2.img -m 512M -nic user,model=rtl8139
@@ -58,11 +59,6 @@ debug: os-image.bin kernel.elf
 	qemu-system-x86_64 -s -fda os-image.bin -d guest_errors,int &
 	${GDB} -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
 
-# Generic rules for wildcards
-# To make an object, always compile from its .c
-kernel/doom.o: kernel/doom.c PureDOOM/PureDOOM.h
-	${CC} ${CFLAGS} -c kernel/doom.c -o kernel/doom.o
-
 %.o: %.c ${HEADERS}
 	${CC} ${CFLAGS} -c $< -o $@
 
@@ -73,5 +69,4 @@ kernel/doom.o: kernel/doom.c PureDOOM/PureDOOM.h
 	nasm $< -f bin -o $@
 
 clean:
-	rm -rf *.bin *.dis *.o os-image.bin *.elf
-	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o cpu/*.o libc/*.o boot_stage2/*.o
+	${FINDPATH} -iname '*.o' -exec rm {} ;

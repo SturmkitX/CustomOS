@@ -131,7 +131,7 @@ void initialize_doom() {
 
     while (1) {
         doom_update();
-        uint8_t* fb = doom_get_framebuffer(1);
+        uint8_t* fb = doom_get_framebuffer(3);
         draw_icon(0, 0, 320, 200, fb);
     }
 
