@@ -9,6 +9,9 @@
 #define FILE_OPS_MEM            0x04000000              // starts at 64 MB
 static struct VFSEntry headers[VFS_ENTRIES_MAX_NUM];   // maximum 1024 files for now
 
+// static char openfilename[16];   // max num of characters
+static uint8_t isBuffered = 0;
+
 struct VFSEntry* vfs_open(const char* filename, const char* mode)
 {
     uint32_t i;
@@ -27,6 +30,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
                 headers[i].size_sectors = 0;
             }
 
+            isBuffered = 0;
             return &headers[i];
         }
     }
@@ -47,6 +51,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
         uint32_t sector = i * sizeof(struct VFSEntry) / 512;
         ata_pio_write48(VFS_START_SECTOR + sector, 1, (uintptr_t)headers + sector * 512);
 
+        isBuffered = 0;
         return &headers[i];
     }
 
@@ -70,7 +75,12 @@ int vfs_read(struct VFSEntry* handle, void *buf, int count)
     if (toread == 0)
         return 0;
 
-    ata_pio_read48(handle->start_sector, handle->size_sectors, tmp);
+    if (isBuffered == 0) {
+        ata_pio_read48(handle->start_sector, handle->size_sectors, tmp);
+        isBuffered = 1;
+        // memory_copy(openfilename, handle->name, 16);
+    }
+    
     memory_copy(buf, tmp + handle->current, toread);
 
     handle->current += toread;

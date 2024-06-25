@@ -27,7 +27,7 @@ static void custom_close_impl(void* handle)
 
 static int custom_read_impl(void* handle, void *buf, int count)
 {
-    kprintf("DOOM Reading %u bytes from HDD\n", count);
+    // kprintf("DOOM Reading %u bytes from HDD\n", count);
     return vfs_read(handle, buf, count);
 }
 
@@ -111,4 +111,23 @@ void initialize_doom() {
 
     char** argv = {{"C:\\doom\\doom.exe"}};
     doom_init(1, argv, 0);
+
+    // uint32_t i;
+
+    // kprintf("Waiting for like 5 seconds\n");
+    // uint32_t els = 1000 / 35;   // time between frames
+    // uint32_t totalframes = 35 * 5;
+
+    // while (totalframes > 0) {
+    //     doom_update();
+    //     sleep(els);
+    //     totalframes--;
+    // }
+
+    // kprintf("Updated DOOM for 5 seconds\n");
+
+    // uint8_t* fb = doom_get_framebuffer(1);
+    // for (i=0; i < 320; i++) {
+    //     kprintf("%u ", fb[i]);
+    // }
 }
