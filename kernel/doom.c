@@ -5,12 +5,15 @@
 
 #include "../drivers/vfs.h"
 #include "../drivers/screen.h"
+#include "../drivers/serial.h"
 #include "../libc/function.h"
+#include "../libc/string.h"
 #include "../libc/mem.h"
 #include "../cpu/timer.h"
 
 // don't know exactly what ENV values are needed
-char testenv[20] = "TESTENV1";
+char* waddir = "WADS";
+char *homedir = ".";
 
 static void* custom_open_impl(const char* filename, const char* mode)
 {
@@ -24,6 +27,7 @@ static void custom_close_impl(void* handle)
 
 static int custom_read_impl(void* handle, void *buf, int count)
 {
+    kprintf("DOOM Reading %u bytes from HDD\n", count);
     return vfs_read(handle, buf, count);
 }
 
@@ -49,12 +53,13 @@ static int custom_eof_impl(void* handle)
 
 static void custom_print_impl(const char* str)
 {
-    kprintf("%s", str);
+    kprint(str);
 }
 
 static void* custom_malloc_impl(int size)
 {
-    return kmalloc((size_t)size);   // its current implementation does not really free memory, so app may crash in a couple of seconds due to insufficient memory
+    uintptr_t tmp = kmalloc((size_t)size);
+    return tmp;   // its current implementation does not really free memory, so app may crash in a couple of seconds due to insufficient memory
 }
 
 static void custom_free_impl(void* ptr)
@@ -74,15 +79,23 @@ static void custom_exit_impl(int code)
 {
     kprintf("Exiting DOOM with code %u\n", code);
     asm("hlt");
+
+    // in case HLT does not work
+    while (1) {}
 }
 
 static char* custom_getenv_impl(const char* var)
 {
     kprintf("Looking for ENV variable %s...\n", var);
-    return testenv;
+    if (strcmp(var, "DOOMWADDIR") == 0) {
+        return waddir;
+    }
+
+    return homedir;
 }
 
 void initialize_doom() {
+    init_serial();
     doom_set_print(custom_print_impl);
     doom_set_malloc(custom_malloc_impl, custom_free_impl);
     doom_set_file_io(custom_open_impl,

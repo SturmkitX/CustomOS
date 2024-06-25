@@ -6,7 +6,7 @@
 #include "../drivers/screen.h"
 
 #define VFS_ENTRIES_MAX_NUM     1024
-#define FILE_OPS_MEM            0x02000000
+#define FILE_OPS_MEM            0x04000000              // starts at 64 MB
 static struct VFSEntry headers[VFS_ENTRIES_MAX_NUM];   // maximum 1024 files for now
 
 struct VFSEntry* vfs_open(const char* filename, const char* mode)
@@ -36,7 +36,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
         headers[i].current = 0;
         headers[i].size_bytes = 0;
         headers[i].size_sectors = 0;
-        headers[i].start_sector = VFS_START_SECTOR + sizeof(headers) / 512 + i * 8000;      // each file can have up to 4 MB of data (8000 sectors)
+        headers[i].start_sector = VFS_START_SECTOR + sizeof(headers) / 512 + i * 16000;      // each file can have up to 8 MB of data (originally was 4 MB, but it was not enough to accommodate doom1.wad)
 
         uint16_t len = MIN(strlen(filename), 16);
         memory_copy(headers[i].name, filename, len);
@@ -57,7 +57,7 @@ void vfs_close(struct VFSEntry* handle)
 {
     // let us flush the data
     // ata_pio_write48(handle->start_sector, handle->size_sectors,)
-    UNUSED(handle);
+    handle->current = 0;
 }
 
 int vfs_read(struct VFSEntry* handle, void *buf, int count)
@@ -93,7 +93,7 @@ int vfs_write(struct VFSEntry* handle, const void *buf, int count)
     kprintf("Write data: Sector = %u (%x), size = %u\n", handle->start_sector, handle->start_sector, handle->size_sectors);
 
     // in order not to disrupt alignment (for now), I will compute the index
-    uint32_t index = (handle->start_sector - VFS_START_SECTOR - sizeof(headers) / 512) / 8000;
+    uint32_t index = (handle->start_sector - VFS_START_SECTOR - sizeof(headers) / 512) / 16000;
     uint32_t sector = index * sizeof(struct VFSEntry) / 512;
     kprintf("Write index = %u, sector = %u\n", index, sector);
     kprintf("Values to write: %u %u %u %u\n", handle->start_sector, handle->size_bytes, handle->size_sectors, handle->current);

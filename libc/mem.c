@@ -22,7 +22,7 @@ void memory_set(void *dest, uint8_t val, uint32_t len) {
  // including video memory, also brutally crashed QEMU at some point
  // hopefully, at this point in memory, no one will be able to interrupt us
  // EDIT 2: Changed to 0x600000 in order to make room for kernel code and MMIO (previously 0x400000, each 0x100000 is 1MB)
-uint32_t free_mem_addr = 0x600000;
+uint32_t free_mem_addr = 0x00600000;
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
 void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
@@ -34,14 +34,16 @@ void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
     /* Save also the physical address */
     if (phys_addr) *phys_addr = free_mem_addr;
 
+    uint32_t ret = free_mem_addr;
     free_mem_addr += size; /* Remember to increment the pointer and size header */
-    return (void*)free_mem_addr;
+    return (void*)ret;
 }
 
 void* kmalloc(size_t size) {
     return kmalloc2(size, 1, NULL);
 }
 
+// Broken as hell for the moment
 void* krealloc(void* buff, size_t size)
 {
     void* newchunk = kmalloc(size);

@@ -341,11 +341,12 @@ void kernel_main() {
                 kprintf("Written characters: %u\n", wr);
             }
         } else if (strcmp(_k_kbd_buff, "VFS3") == 0) {
-            struct VFSEntry* vfs = vfs_open("test2.txt", "wa");
+            struct VFSEntry* vfs = vfs_open("WADS/doom1.wad", "r");
             if (vfs != NULL) {
                 kprint("Reading from file\n");
                 char msg[20];
 
+                vfs_seek(vfs, 0x3FDA3C, SEEK_SET);
                 uint32_t readb = vfs_read(vfs, msg, 10);
                 kprintf("Read Bytes = %u, EOF = %u\n", readb, vfs_eof(vfs));
 
