@@ -9,6 +9,10 @@
 
 static struct PCIAddressInfo _pci_address;
 
+static uint32_t _int_res_x = SCREEN_WIDTH;
+static uint32_t _int_res_y = SCREEN_HEIGHT;
+static uint32_t _scale_factor = 1;
+
 uint8_t init_vga() {
     port_byte_in(0x3DA);    // reset 0x3C0
     // Check if 0x3C6 is 0xFF
@@ -110,19 +114,23 @@ void putpixel(int pos_x, int pos_y, uint32_t VGA_COLOR) {
     if (_pci_address.vendor_id == 0) {
         getDeviceInfo(0x1234, 0x1111, &_pci_address);   // QEMU VGA
     }
-    unsigned char* location = (unsigned char*)(_pci_address.BAR0) + (SCREEN_WIDTH * pos_y + pos_x) * PIXEL_WIDTH;
-    
-    switch (PIXEL_WIDTH) {
-        case 1:     // 8 bit, 256 colors (should follow VGA palette)
-            mmio_byte_out(location, (VGA_COLOR & 0xFF));
-            break;
-        case 3:     // 24 bit, RBG (standard VGA 640x480 uses BGR for some reason)
-        default:
-            mmio_byte_out(location, (VGA_COLOR >> 16));
-            mmio_byte_out(location + 1, (VGA_COLOR & 0xFF));
-            mmio_byte_out(location + 2, ((VGA_COLOR >> 8) & 0xFF));
+    unsigned char* location = (unsigned char*)(_pci_address.BAR0) + (SCREEN_WIDTH * pos_y * _scale_factor + pos_x * _scale_factor) * PIXEL_WIDTH;
+    uint8_t i, j;
+
+    for (i = 0; i < _scale_factor; i++) {
+        for (j=0; j < _scale_factor; j++) {
+            switch (PIXEL_WIDTH) {
+                case 1:     // 8 bit, 256 colors (should follow VGA palette)
+                    mmio_byte_out(location + i * SCREEN_WIDTH + j, (VGA_COLOR & 0xFF));
+                    break;
+                case 3:     // 24 bit, RBG (standard VGA 640x480 uses BGR for some reason)
+                default:
+                    mmio_byte_out(location + (i * SCREEN_WIDTH + j) * PIXEL_WIDTH, (VGA_COLOR >> 16));
+                    mmio_byte_out(location + (i * SCREEN_WIDTH + j) * PIXEL_WIDTH + 1, (VGA_COLOR & 0xFF));
+                    mmio_byte_out(location + (i * SCREEN_WIDTH + j) * PIXEL_WIDTH + 2, ((VGA_COLOR >> 8) & 0xFF));
+            }
+        }
     }
-    
 }
 
 // for now, assumes RGB input (transparency not supported yet)
@@ -153,4 +161,21 @@ void fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color) {
             putpixel(x + i, y + l, color);
         }
     }
+}
+
+void set_scale_factor(uint32_t scale) {
+    if (scale == 0)
+        return;
+
+    _scale_factor = scale;
+    _int_res_x = SCREEN_WIDTH / scale;
+    _int_res_y = SCREEN_HEIGHT / scale;
+}
+
+uint32_t getResWidth() {
+    return _int_res_x;
+}
+
+uint32_t getResHeight() {
+    return _int_res_y;
 }

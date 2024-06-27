@@ -118,22 +118,40 @@ void initialize_doom() {
     doom_set_exit(custom_exit_impl);
     doom_set_getenv(custom_getenv_impl);
 
+    // Change default bindings to modern mapping
+    doom_set_default_int("key_up",          DOOM_KEY_W);
+    doom_set_default_int("key_down",        DOOM_KEY_S);
+    doom_set_default_int("key_left",        DOOM_KEY_A);
+    doom_set_default_int("key_right",       DOOM_KEY_D);
+    doom_set_default_int("key_use",         DOOM_KEY_E);
+    doom_set_default_int("key_fire",         DOOM_KEY_R);
+    doom_set_default_int("mouse_move",      0); // Mouse will not move forward
+
     char** argv = {{"C:\\doom\\doom.exe"}};
     doom_init(1, argv, 0);
 
-    uint32_t i;
+    set_scale_factor(2);
+    uint32_t resx = getResWidth();
+    uint32_t resy = getResHeight();
+    kprintf("Resolution after Scale by 2: %ux%u\n", getResWidth(), getResHeight());
 
-    write_string_serial("Waiting for like 5 seconds\r\n");
-    uint32_t els = 1000 / 35;   // time between frames
-    uint32_t totalframes = 35 * 5;
-
-    write_string_serial("Is alloc done before update?\r\n");
+    uint8_t key, released, special;
+    while(poll_key(&key, &released, &special)) {}
 
     while (1) {
         doom_update();
         uint8_t* fb = doom_get_framebuffer(3);
-        draw_icon(0, 0, 320, 200, fb);
+
+        if (poll_key(&key, &released, &special)) {
+            char doomkey = key_to_ascii(key, special);
+            if (released)
+                doom_key_up(doomkey);
+            else
+                doom_key_down(doomkey);
+        }
+
+        // needs improvement
+        draw_icon(0, 0, resx, resy, fb);
     }
 
-    kprintf("Updated DOOM for 5 seconds\n");
 }
