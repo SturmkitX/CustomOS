@@ -5,6 +5,7 @@
 #include "../drivers/vfs.h"
 #include "../drivers/screen.h"
 #include "../drivers/serial.h"
+#include "../drivers/ac97.h"
 #include "../libc/function.h"
 #include "../libc/string.h"
 #include "../libc/mem.h"
@@ -137,21 +138,45 @@ void initialize_doom() {
 
     uint8_t key, released, special;
     while(poll_key(&key, &released, &special)) {}
+    initializeAC97(11025);
+    uint32_t start_tick = get_ticks();
+    uint32_t curr_tick = start_tick;
+    const uint32_t ticks_to_wait = 1000 / 60;   // 60 fps
+    uint8_t audio_fill = 0;
+
+    uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
 
     while (1) {
-        doom_update();
-        uint8_t* fb = doom_get_framebuffer(3);
+        // assumes tick at 1ms (but will change soon)
+        curr_tick = get_ticks();
+        if (curr_tick - start_tick >= ticks_to_wait) {
+            doom_update();
+            uint8_t* fb = doom_get_framebuffer(3);
 
-        if (poll_key(&key, &released, &special)) {
-            char doomkey = key_to_ascii(key, special);
-            if (released)
-                doom_key_up(doomkey);
-            else
-                doom_key_down(doomkey);
+            if (poll_key(&key, &released, &special)) {
+                char doomkey = key_to_ascii(key, special);
+                if (released)
+                    doom_key_up(doomkey);
+                else
+                    doom_key_down(doomkey);
+            }
+
+            int16_t* buffer = doom_get_sound_buffer(2048);
+            playAudio(buffer, 2048);
+            // memory_copy(audio_buffer + audio_fill * 2048, buffer, 2048);
+            // audio_fill++;
+
+            // if (audio_fill == 63) {
+            //     playAudio(buffer, audio_fill * 2048);    // 512 samples * 2 channels * 2 bytes per sample
+            //     audio_fill = 0;
+            // }
+            
+
+            // needs improvement
+            draw_icon(0, 0, resx, resy, fb);
+
+            start_tick = curr_tick;
         }
-
-        // needs improvement
-        draw_icon(0, 0, resx, resy, fb);
     }
 
 }

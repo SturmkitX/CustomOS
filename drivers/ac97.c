@@ -16,6 +16,8 @@
 #define REGISTER_MIXER_MASTER_VOLUME    0X02
 #define REGISTER_MIXER_AUX_VOLUME       0x04
 #define REGISTER_MIXER_PCM_VOLUME       0x18
+#define REGISTER_MIXER_EXT_CAP          0X28
+#define REGISTER_MIXER_CTL_EXT_CAP      0X2A
 #define REGISTER_MIXER_PCM_FRONT_SAMPLE_RATE    0X2C
 
 #define MIN(a, b) (a < b ? a : b)
@@ -37,7 +39,7 @@ uint8_t identifyAC97() {
     return (_pci_address.vendor_id != 0xFFFF && _pci_address.device_id != 0xFFFF);
 }
 
-uint8_t initializeAC97() {
+uint8_t initializeAC97(uint16_t sample_rate) {
     kprintf("AC97 Init IO Addr: %u\n", AC97NAMixerRegister);
     // First check if PCI Bus Mastering is enabled
     uint16_t commandReg = pciConfigReadWord(_pci_address.bus, _pci_address.device, _pci_address.function, 4);
@@ -90,6 +92,18 @@ uint8_t initializeAC97() {
     port_word_out(AC97NAMixerRegister + REGISTER_MIXER_MASTER_VOLUME, 0);
     port_word_out(AC97NAMixerRegister + REGISTER_MIXER_PCM_VOLUME, 0);
 
+    // Change sample rate if needed
+    if (sample_rate != DEFAULT_SAMPLE_RATE) {
+        // Check if we can do it
+        if ((port_word_in(AC97NAMixerRegister + REGISTER_MIXER_EXT_CAP) & 1) == 1) {
+            kprintf("Changing sample rate to %u\n", sample_rate);
+            uint16_t ctlext = port_word_in(AC97NAMixerRegister + REGISTER_MIXER_CTL_EXT_CAP);
+            port_word_out(AC97NAMixerRegister + REGISTER_MIXER_CTL_EXT_CAP, (ctlext | 1));
+
+            port_word_out(AC97NAMixerRegister + REGISTER_MIXER_PCM_FRONT_SAMPLE_RATE, sample_rate);
+        }
+    }
+
     return 1;
 }
 
@@ -119,7 +133,7 @@ void playAudio(uintptr_t buffer, uint32_t bufferLength) {
     port_dword_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_ADDRESS_OFFSET, (uintptr_t)desc);
 
     // Write number of entries (aka Last Valid Entry)
-    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, 31);   // only 5 bits are used (0..31)
+    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, i - 1);   // only 5 bits are used (0..31)
 
     // Start DMA transfer
     port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET, (1 << 0));

@@ -9,8 +9,8 @@
 
 static struct PCIAddressInfo _pci_address;
 
-static uint32_t _int_res_x = SCREEN_WIDTH;
-static uint32_t _int_res_y = SCREEN_HEIGHT;
+static uint32_t _int_res_x = RENDER_WIDTH;
+static uint32_t _int_res_y = RENDER_HEIGHT;
 static uint32_t _scale_factor = 1;
 
 uint8_t init_vga() {
@@ -136,19 +136,38 @@ void putpixel(int pos_x, int pos_y, uint32_t VGA_COLOR) {
 // for now, assumes RGB input (transparency not supported yet)
 void draw_icon(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uintptr_t pixels) {
     uint32_t i,j,l;
+    uint32_t ki,kj;
     uint8_t* pxs = (uint8_t*)pixels;
+
+    if (_pci_address.vendor_id == 0) {
+        getDeviceInfo(0x1234, 0x1111, &_pci_address);   // QEMU VGA
+    }
+
     for (l = j = 0; l < h; l++) {
         for (i = 0; i < w; i++, j+=PIXEL_WIDTH) {
-            uint32_t pixel = 0;
-            switch (PIXEL_WIDTH) {
-                case 1:
-                    pixel = pxs[j];
-                    break;
-                case 3:
-                    pixel = (pxs[j] << 16) + (pxs[j + 1] << 8) + (pxs[j + 2]);
-                    break;
+            // putpixel(x + i, y + l, pixel);
+
+            volatile unsigned char* location = (volatile unsigned char*)(_pci_address.BAR0) + (SCREEN_WIDTH * (y + l) + (x + i)) * PIXEL_WIDTH * _scale_factor;
+            uint32_t locpos;
+
+            for (ki = 0; ki < _scale_factor; ki++) {
+                for (kj=0; kj < _scale_factor; kj++) {
+                    locpos = (ki * SCREEN_WIDTH + kj) * PIXEL_WIDTH;
+                    // switch (PIXEL_WIDTH) {
+                    //     case 1:     // 8 bit, 256 colors (should follow VGA palette)
+                    //         location[locpos] = pxs[j];
+                    //         break;
+                    //     case 3:     // 24 bit, RBG (standard VGA 640x480 uses BGR for some reason)
+                    //     default:
+                    //         location[locpos] = pxs[j];
+                    //         location[locpos + 1] = pxs[j + 2];
+                    //         location[locpos + 2] = pxs[j + 1];
+                    // }
+                    location[locpos] = pxs[j];
+                    location[locpos + 1] = pxs[j + 2];
+                    location[locpos + 2] = pxs[j + 1];
+                }
             }
-            putpixel(x + i, y + l, pixel);
         }
     }
 }
@@ -168,8 +187,8 @@ void set_scale_factor(uint32_t scale) {
         return;
 
     _scale_factor = scale;
-    _int_res_x = SCREEN_WIDTH / scale;
-    _int_res_y = SCREEN_HEIGHT / scale;
+    _int_res_x = RENDER_WIDTH / scale;
+    _int_res_y = RENDER_HEIGHT / scale;
 }
 
 uint32_t getResWidth() {

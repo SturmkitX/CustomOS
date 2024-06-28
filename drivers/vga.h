@@ -4,7 +4,11 @@
 #include <stdint.h>
 
 #define SCREEN_WIDTH    640
-#define SCREEN_HEIGHT   400     // Actually it's 480, but does not affect functionality now
+#define SCREEN_HEIGHT   480
+
+#define RENDER_WIDTH    640
+#define RENDER_HEIGHT   400
+
 #define PIXEL_WIDTH     3
 
 void putpixel(int pos_x, int pos_y, uint32_t VGA_COLOR);

@@ -60,4 +60,4 @@ if __name__ == '__main__':
     print("Format size = ", entry_size)
     get_files('hdda.img')
     # put_file('hdda.img', 'udp-server.py')
-    put_file('hdda.img', 'PureDOOM/doom1.wad', 'WADS/doom1.wad')
+    put_file('hdda.img', '../music-11khz.raw', 'betray.raw')
