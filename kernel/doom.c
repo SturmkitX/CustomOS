@@ -145,6 +145,7 @@ void initialize_doom() {
     uint8_t audio_fill = 0;
 
     uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
+    uint8_t last_scancode = 255, last_released = 0;
 
     while (1) {
         // assumes tick at 1ms (but will change soon)
@@ -154,11 +155,16 @@ void initialize_doom() {
             uint8_t* fb = doom_get_framebuffer(3);
 
             if (poll_key(&key, &released, &special)) {
-                char doomkey = key_to_ascii(key, special);
-                if (released)
-                    doom_key_up(doomkey);
-                else
-                    doom_key_down(doomkey);
+                if (key != last_scancode || last_released != released) {
+                    char doomkey = key_to_ascii(key, special);
+                    if (released)
+                        doom_key_up(doomkey);
+                    else
+                        doom_key_down(doomkey);
+
+                    last_scancode = key;
+                    last_released = released;
+                }
             }
 
             int16_t* buffer = doom_get_sound_buffer(2048);

@@ -52,6 +52,7 @@ static void keyboard_callback(registers_t *regs) {
     _sc_buffer[_sc_buffer_right++] = scancode;
     // kprintf("Added scancode %x, key %s, ASCII = %c\n", scancode, sc_name[scancode], key_to_ascii(scancode, 0));
     
+    
     // if (scancode > SC_MAX) return;
     if (scancode == BACKSPACE) {
         backspace(key_buffer);
