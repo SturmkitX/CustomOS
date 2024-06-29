@@ -15,7 +15,7 @@ void stage2_main() {
     uint8_t* diskData = (uint8_t*) DISK_START_ADDR;
 
     // Read disk (FAT32 structure is broken now)
-    ata_pio_read48(0, 1024, diskData);
+    ata_pio_read48(0, 1512, diskData);
 
     kprintf("Disk Data first 5 sectors (1st sector): %x %x %x %x %x\n", diskData[0], diskData[1], diskData[2], diskData[3], diskData[4]);
     kprintf("Disk Data first 5 sectors (2nd sector): %x %x %x %x %x\n", diskData[512], diskData[513], diskData[514], diskData[515], diskData[516]);

@@ -27,6 +27,8 @@
 #include "../libc/function.h"
 #include "../drivers/vfs.h"
 #include "doom.h"
+// #include "../tinymidipcm/tinymidipcm.h"
+#include "../fdlibm/fdlibm.h"
 
 static char _k_kbd_buff[256];
 
@@ -415,6 +417,11 @@ void kernel_main() {
         } else if (strcmp(_k_kbd_buff, "DOOM") == 0) {
             kprint("Initializing our doom...\n");
             initialize_doom();
+        } else if (strcmp(_k_kbd_buff, "MATH") == 0) {
+            kprint("Trying out some math\n");
+            double result = sqrt(16);
+
+            kprintf("The result is %u\n", (int)result);
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);
