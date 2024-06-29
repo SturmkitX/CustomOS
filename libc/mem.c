@@ -35,8 +35,9 @@ void* kmalloc2(size_t size, int align, uint32_t *phys_addr) {
     if (phys_addr) *phys_addr = free_mem_addr;
 
     uint32_t ret = free_mem_addr;
+    *(uint32_t*)ret = size;
     free_mem_addr += size; /* Remember to increment the pointer and size header */
-    return (void*)ret;
+    return (void*)(ret + 4);
 }
 
 void* kmalloc(size_t size) {
@@ -51,8 +52,9 @@ void* krealloc(void* buff, size_t size)
         return newchunk;
 
     uint32_t oldsize = *(((uint32_t*)buff) - 1);
+    uint32_t cpsize = MIN(size, oldsize);
 
-    memory_copy(newchunk, buff, oldsize);
+    memory_copy(newchunk, buff, cpsize);
     kfree(buff);
 
     return newchunk;

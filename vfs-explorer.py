@@ -24,7 +24,7 @@ def get_files(hdd):
     
     # Print files
     for file in files:
-        print("[%d] Name: %s, Size: %d (%d blocks)" % (files.index(file), file['name'], file['size_bytes'], file['size_sectors']))
+        print("[%d] Name: %s, Size: %d (%d blocks)" % (files.index(file), file['name'].decode('utf-8'), file['size_bytes'], file['size_sectors']))
 
 def put_file(hdd, target, newName = None):
     content = b''
@@ -56,8 +56,40 @@ def put_file(hdd, target, newName = None):
     for file in files:
         print("[%d] Name: %s, Size: %d (%d blocks)" % (files.index(file), file['name'], file['size_bytes'], file['size_sectors']))
 
+
+def extract_file(hdd, filename, targetname = None):
+    readb = b''
+    file = None
+    for x in files:
+        name = x['name'].decode('utf-8').strip()
+        namelen = min(len(name), len(filename))
+        if name[:namelen] == filename[:namelen]:
+            file = x
+            break       # we may have duplicates, ignore them for now
+
+    if file is None:
+        print("File not found")
+        exit(1)
+
+    with open(hdd, 'rb') as ft:
+        ft.seek(file['start_sector'] * 512)
+        readb = ft.read(file['size_bytes'])
+
+        if (len(readb) < file['size_bytes']):
+            print("WARNING: Read Bytes size is smaller than file size; Read Bytes {}, File size: {}" % (len(readb), file['size_bytes']))
+
+    if (targetname is None or len(targetname) == 0):
+        targetname = filename
+
+    with open(targetname, 'wb') as fo:
+        fo.write(readb)
+
+    print("File extracted successfully")
+
+
 if __name__ == '__main__':
     print("Format size = ", entry_size)
     get_files('hdda.img')
     # put_file('hdda.img', 'udp-server.py')
-    put_file('hdda.img', '../music-11khz.raw', 'betray.raw')
+    # put_file('hdda.img', 'tinymidipcm/scc1t2.sf2', 'scc1t2.sf2')
+    extract_file('hdda.img', 'e13.raw')

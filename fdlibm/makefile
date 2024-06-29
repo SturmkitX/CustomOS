@@ -49,9 +49,9 @@
 #
 # Default IEEE libm
 #
-CFLAGS = -D_IEEE_LIBM -ffreestanding -m32
+CFLAGS = -D_IEEE_LIBM -m32
 
-CC = i686-elf-gcc
+CC = gcc
 
 FINDPATH = "..\..\w64devkit\bin\find.exe"
 
@@ -103,8 +103,8 @@ obj = 	k_standard.o k_rem_pio2.o \
 all: libm.a 
 
 libm.a : $(obj) 
-	i686-elf-ar cru libm.a $(obj)
-	i686-elf-ranlib libm.a
+	ar cru libm.a $(obj)
+	ranlib libm.a
 
 source: $(src) README
 

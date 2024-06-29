@@ -27,7 +27,8 @@
 #include "../libc/function.h"
 #include "../drivers/vfs.h"
 #include "doom.h"
-// #include "../tinymidipcm/tinymidipcm.h"
+#include "midi.h"
+
 #include "../fdlibm/fdlibm.h"
 
 static char _k_kbd_buff[256];
@@ -422,6 +423,10 @@ void kernel_main() {
             double result = sqrt(16);
 
             kprintf("The result is %u\n", (int)result);
+        } else if (strcmp(_k_kbd_buff, "MIDI") == 0) {
+            kprint("Playing E1M1 music\n");
+
+            play_midi();
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

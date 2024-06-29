@@ -142,16 +142,19 @@ void initialize_doom() {
     uint32_t start_tick = get_ticks();
     uint32_t curr_tick = start_tick;
     const uint32_t ticks_to_wait = 1000 / 60;   // 60 fps
+    const uint32_t ticks_audio = 1000 / 140;
+    uint32_t start_tick_audio = start_tick;
     uint8_t audio_fill = 0;
 
     uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
     uint8_t last_scancode = 255, last_released = 0;
 
     while (1) {
+        doom_update();
+
         // assumes tick at 1ms (but will change soon)
         curr_tick = get_ticks();
         if (curr_tick - start_tick >= ticks_to_wait) {
-            doom_update();
             uint8_t* fb = doom_get_framebuffer(3);
 
             if (poll_key(&key, &released, &special)) {
@@ -167,21 +170,17 @@ void initialize_doom() {
                 }
             }
 
-            int16_t* buffer = doom_get_sound_buffer(2048);
-            playAudio(buffer, 2048);
-            // memory_copy(audio_buffer + audio_fill * 2048, buffer, 2048);
-            // audio_fill++;
-
-            // if (audio_fill == 63) {
-            //     playAudio(buffer, audio_fill * 2048);    // 512 samples * 2 channels * 2 bytes per sample
-            //     audio_fill = 0;
-            // }
-            
-
             // needs improvement
             draw_icon(0, 0, resx, resy, fb);
 
             start_tick = curr_tick;
+        }
+
+        if (curr_tick - start_tick_audio >= ticks_audio) {
+            int16_t* buffer = doom_get_sound_buffer(2048);
+            playAudio(buffer, 2048);
+
+            start_tick_audio = curr_tick;
         }
     }
 

@@ -1,5 +1,5 @@
-C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c boot_stage2/*.c PureDOOM/src/DOOM/*.c)
-HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h PureDOOM/src/DOOM/*.h)
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c boot_stage2/*.c PureDOOM/src/DOOM/*.c fdlibm/*.c)
+HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h PureDOOM/src/DOOM/*.h fdlibm/*.h)
 # Nice syntax for file extension replacement
 OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
 
@@ -7,7 +7,7 @@ OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o}
 CC = i686-elf-gcc
 GDB = i686-elf-gdb
 # -g: Use debugging symbols in gcc
-CFLAGS = -g -O0 -ffreestanding -Wall -Wextra -fno-exceptions -m32
+CFLAGS = -g -O0 -ffreestanding -Wall -Wextra -fno-exceptions -m32 -D_POSIX_MODE
 
 DDPATH = "..\w64devkit\bin\dd.exe"
 FINDPATH = "..\w64devkit\bin\find.exe"
