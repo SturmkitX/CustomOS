@@ -29,6 +29,11 @@ static uint8_t _audio_sample_size = 2;  // 16 bits
 
 static struct PCIAddressInfo _pci_address;
 
+static uint32_t AC97AddedEntries = 0;       // should hold for some time, depends on frequency
+static uint32_t AC97ProcessedEntries = 0;
+static uint8_t AC97LastEntry = 255;
+static struct AC97BufferDescriptor AC97BDLDesc[AC97_BDL_NO_ENTRIES];
+
 uint8_t identifyAC97() {
     // for some reason, the address may be misaligned (let's only reset the last 4 bits for now)
     getDeviceInfo(0x8086, 0x2415, &_pci_address);  // 82801AA AC'97 Audio Controller
@@ -104,65 +109,137 @@ uint8_t initializeAC97(uint16_t sample_rate) {
         }
     }
 
+    stopAudio();
+
     return 1;
 }
 
-void playAudio(uintptr_t buffer, uint32_t bufferLength) {
-    struct AC97BufferDescriptor* desc = (struct AC97BufferDescriptor*) kmalloc(sizeof(struct AC97BufferDescriptor) * AC97_BDL_NO_ENTRIES);
-    uint32_t offset = 0, inc;
-    uint32_t i;
+void resumeAudio() {
+    uint8_t stat = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET);
+    stat |= 1;
+    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET, stat);
+}
 
-    // must add checks
-    for (i=0; i < AC97_BDL_NO_ENTRIES && offset < bufferLength; i++) {
-        desc[i].data = buffer + offset;
+void pauseAudio() {
+    uint8_t stat = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET);
+    stat &= ~1;
+    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET, stat);
 
-        inc = MIN((bufferLength - offset) / _audio_sample_size, AC97_BDL_NO_SAMPLES_MAX);
-        desc[i].no_samples = inc;
-        desc[i].control = inc < AC97_BDL_NO_SAMPLES_MAX ? (1 << 14) : 0;    // send Last Entry bit if necessary
+    kprint("Audio paused\n");
+}
 
-        offset += inc * _audio_sample_size;
-    }
+uint8_t isAudioPlaying() {
+    uint8_t stat = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET);
+
+    return ((stat & 1) > 0);
+}
+
+void stopAudio() {
+    // feels like it is not properly reset
+    pauseAudio();
 
     // Set reset bit of output channel and wait for clear
     port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET, (1 << 1));
     while (port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET) != 0) {}
 
+    // // Write BDL address
+    // port_dword_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_ADDRESS_OFFSET, (uintptr_t)AC97BDLDesc);
+
+    AC97AddedEntries = 0;
+    AC97ProcessedEntries = 0;
+
     kprint("Successfully reset PCM Output channel\n");
+}
 
-    // Write BDL address
-    port_dword_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_ADDRESS_OFFSET, (uintptr_t)desc);
-
-    // Write number of entries (aka Last Valid Entry)
-    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, i - 1);   // only 5 bits are used (0..31)
-
-    // Start DMA transfer
-    port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_TRANSFER_CONTROL_OFFSET, (1 << 0));
-
-    uint16_t sample_rate = port_word_in(AC97NAMixerRegister + REGISTER_MIXER_PCM_FRONT_SAMPLE_RATE);
-    kprintf("PCM Front Sample Rate: %u\n", sample_rate);
-
+uint8_t playAudio_Callback() {
     // Wait for play to finish
-    uint16_t status = 0;
-    uint8_t curr_entry = 0;
-    uint8_t last_entry = 0;     // probably should be initialized with something
-    do {
-        status = port_word_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_CONTROL_STATUS_OFFSET);
-        curr_entry = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_CURR_ENTRY_OFFSET);
-        kprintf("%u %u\n", status, curr_entry);
+    
+    uint8_t curr_entry = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_CURR_ENTRY_OFFSET);
+    if (AC97LastEntry == 255) {
+        AC97LastEntry = curr_entry;
+    }
 
-        if (curr_entry != last_entry) {
-            desc[last_entry].data = buffer + offset;
+    if (AC97LastEntry != curr_entry) {
+        AC97LastEntry = curr_entry;
+        AC97ProcessedEntries++;
+        kprintf("%u\n", curr_entry);
+    }
+
+    uint16_t status = port_word_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_CONTROL_STATUS_OFFSET);
+    uint8_t isEnded = ((status & 2) > 0);
+
+    if (isEnded) {
+        stopAudio();
+        kprint("Music transmission ended\n");
+    }
+        
+    curr_entry = port_byte_in(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_CURR_ENTRY_OFFSET);
+
+    // AC97ProcessedEntries++;     // needs to be done when song is finished
+    kprintf("%u %u\n", curr_entry, isEnded);
+
+    return (!isEnded);
+}
+
+uintptr_t playAudio(uintptr_t buffer, uint32_t bufferLength) {
+    uint32_t offset = 0, inc;
+    uint32_t i;
+    uint8_t pos;
+
+    if (!isAudioPlaying()) {
+        AC97AddedEntries = 0;
+        AC97ProcessedEntries = 0;
+
+        // must add checks
+        // may overwrite existing songs if audio is too large
+        for (i=0; i < AC97_BDL_NO_ENTRIES_BUFFER && offset < bufferLength; i++) {
+            pos = (AC97AddedEntries % AC97_BDL_NO_ENTRIES);
+            AC97AddedEntries++;
+            kprintf("Added BDL entries: %u\n", AC97AddedEntries);
+
+            AC97BDLDesc[i].data = buffer + offset;
 
             inc = MIN((bufferLength - offset) / _audio_sample_size, AC97_BDL_NO_SAMPLES_MAX);
-            desc[last_entry].no_samples = inc;
-            desc[last_entry].control = inc < AC97_BDL_NO_SAMPLES_MAX ? (1 << 14) : 0;    // send Last Entry bit if necessary
+            AC97BDLDesc[i].no_samples = inc;
 
             offset += inc * _audio_sample_size;
-
-            port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, last_entry);   // only 5 bits are used (0..31)
-            last_entry = curr_entry;
+            AC97BDLDesc[i].control = 0;    // send Last Entry bit if necessary (bit 14)
         }
-    } while ((status & 2) == 0);
 
-    kprint("Music transmission ended\n");
+        // Write BDL address
+        port_dword_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_ADDRESS_OFFSET, (uintptr_t)AC97BDLDesc);
+        
+
+        // Write number of entries (aka Last Valid Entry)
+        port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, i-1);   // only 5 bits are used (0..31)
+
+        resumeAudio();
+    } else {
+        uint8_t available_entries = AC97_BDL_NO_ENTRIES_BUFFER - (AC97AddedEntries - AC97ProcessedEntries);
+        for (i=0; i < available_entries && offset < bufferLength; i++) {
+            pos = (AC97AddedEntries % AC97_BDL_NO_ENTRIES);
+            AC97AddedEntries++;
+
+            AC97BDLDesc[pos].data = buffer + offset;
+
+            inc = MIN((bufferLength - offset) / _audio_sample_size, AC97_BDL_NO_SAMPLES_MAX);
+            AC97BDLDesc[pos].no_samples = inc;
+
+            offset += inc * _audio_sample_size;
+            AC97BDLDesc[pos].control = 0;    // send Last Entry bit if necessary
+        }
+
+        // Write number of entries (aka Last Valid Entry)
+        port_byte_out(AC97NABusRegister + REGISTER_BUS_PCM_OUT + REGISTER_BUS_BDL_NO_ENTRIES_OFFSET, pos);   // only 5 bits are used (0..31)
+    }
+
+    // return NULL is nothing is left to play, otherwise return location of current position
+    return (offset == bufferLength) ? 0 : (buffer + offset);
+
+    // uint16_t sample_rate = port_word_in(AC97NAMixerRegister + REGISTER_MIXER_PCM_FRONT_SAMPLE_RATE);
+    // kprintf("PCM Front Sample Rate: %u\n", sample_rate);
+}
+
+uint8_t isAudioBufferFull() {
+    return (AC97AddedEntries - AC97ProcessedEntries >= AC97_BDL_NO_ENTRIES_BUFFER);
 }

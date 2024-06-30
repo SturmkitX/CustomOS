@@ -1,6 +1,8 @@
 #include "midi.h"
 #include "../libc/mem.h"
+#include "../cpu/timer.h"
 #include "../drivers/vfs.h"
+#include "../drivers/ac97.h"
 
 #define TML_MALLOC  kmalloc
 #define TML_REALLOC krealloc
@@ -30,8 +32,12 @@ static tsf* g_TinySoundFont;
 static double g_Msec;               //current playback time
 static tml_message* g_MidiMessage;  //next message to be played
 
-static void AudioCallback(void* data, char* stream, int len)
+static float g_SampleRate = 48000.0f;
+
+static tml_message* MidiPlayCallback(void* data, char* stream, int len)
 {
+	tml_message* g_MidiMessage = (tml_message*)data;
+
 	//Number of samples to process
 	int SampleBlock, SampleCount = (len / (2 * sizeof(short))); //2 output channels
 	for (SampleBlock = TSF_RENDER_EFFECTSAMPLEBLOCK; SampleCount; SampleCount -= SampleBlock, stream += (SampleBlock * (2 * sizeof(short))))
@@ -40,7 +46,7 @@ static void AudioCallback(void* data, char* stream, int len)
 		if (SampleBlock > SampleCount) SampleBlock = SampleCount;
 
 		//Loop through all MIDI messages which need to be played up until the current playback time
-		for (g_Msec += SampleBlock * (1000.0 / 11025.0); g_MidiMessage && g_Msec >= g_MidiMessage->time; g_MidiMessage = g_MidiMessage->next)
+		for (g_Msec += SampleBlock * (1000.0 / g_SampleRate); g_MidiMessage && g_Msec >= g_MidiMessage->time; g_MidiMessage = g_MidiMessage->next)
 		{
 			switch (g_MidiMessage->type)
 			{
@@ -65,11 +71,11 @@ static void AudioCallback(void* data, char* stream, int len)
 		// Render the block of audio samples in float format
 		tsf_render_short(g_TinySoundFont, (short*)stream, SampleBlock, 0);
 	}
+
+	return g_MidiMessage;
 }
 
-void play_midi() {
-	tml_message* TinyMidiLoader = NULL;
-
+void init_midi(char* sfName, float sample_rate) {
 	// Define the desired audio output format we request
 	/*SDL_AudioSpec OutputAudioSpec;
 	OutputAudioSpec.freq = 11025;
@@ -78,26 +84,10 @@ void play_midi() {
 	OutputAudioSpec.samples = 4096;
 	OutputAudioSpec.callback = AudioCallback;*/
 
-	//Venture (Original WIP) by Ximon
-	//https://musescore.com/user/2391686/scores/841451
-	//License: Creative Commons copyright waiver (CC0)
-    struct VFSEntry *tml = vfs_open("e1m1.mid", "rb");
-    if (!tml) {
-        kprint("E1M1.mid could not be found\n");
-        return;
-    }
-    uint8_t *midifile = kmalloc(tml->size_bytes);
-    vfs_read(tml, midifile, tml->size_bytes);
-
-	TinyMidiLoader = tml_load_memory(midifile, tml->size_bytes);
-
-	//Set up the global MidiMessage pointer to the first MIDI message
-	g_MidiMessage = TinyMidiLoader;
-
 	// Load the SoundFont from a file
-    struct VFSEntry *tsf = vfs_open("scc1t2.sf2", "rb");
-    if (!tml) {
-        kprint("SCC1T2.sf2 could not be found\n");
+    struct VFSEntry *tsf = vfs_open(sfName, "rb");
+    if (!tsf) {
+        kprintf("%s could not be found\n", sfName);
         return;
     }
     uint8_t *sffile = kmalloc(tsf->size_bytes);
@@ -114,23 +104,42 @@ void play_midi() {
 	tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
 
 	// Set the SoundFont rendering output mode
-	tsf_set_output(g_TinySoundFont, TSF_STEREO_INTERLEAVED, 11025, 0.0f);
+	tsf_set_output(g_TinySoundFont, TSF_STEREO_INTERLEAVED, sample_rate, 0.0f);
 
-	// Render a couple of seconds
-	int secs = 15;
-	int size = 15 * 11025 * 2 * 2;
-	char* buffer = (char*)kmalloc(size);
-	AudioCallback(NULL, buffer, size);
-
-	playAudio(buffer, size);
-
-    // struct VFSEntry* outraw = vfs_open("e13.raw", "wb");
-    // if (outraw != NULL) {
-    //     vfs_write(outraw, buffer, size);
-    // }
-
-	// We could call tsf_close(g_TinySoundFont) and tml_free(TinyMidiLoader)
-	// here to free the memory and resources but we just let the OS clean up
-	// because the process ends here.
-	return 0;
+	g_SampleRate = sample_rate;
+	g_Msec = 0;
 }
+
+void play_midi(void* data, uint32_t size) {
+	tml_message* TinyMidiLoader = tml_load_memory((char*)data, size);
+
+	uint32_t secsize = 10 * 11502 * 4;	// 2 channels, 2 bytes per sample
+	char* pcm = (char*) kmalloc(secsize);	// synthesize up to 1 second
+
+	double msec_old = g_Msec;
+
+	TinyMidiLoader = MidiPlayCallback(TinyMidiLoader, pcm, secsize);
+	char* newpcm = pcm;
+	uint32_t currsize = secsize;
+	
+	while ((newpcm = playAudio(newpcm, currsize))) {
+		playAudio_Callback();
+		kprintf("Waiting for buffer to empty %u\n", newpcm);
+		currsize = secsize - (uint32_t)(newpcm - pcm);
+	}
+
+	while(playAudio_Callback()) {}
+}
+
+void play_midi_file(char* filename) {
+	struct VFSEntry *tml = vfs_open(filename, "rb");
+	if (!tml) {
+		kprintf("%s could not be found\n", filename);
+		return;
+	}
+	uint8_t *midifile = kmalloc(tml->size_bytes);
+	vfs_read(tml, midifile, tml->size_bytes);
+
+	play_midi(midifile, tml->size_bytes);
+}
+

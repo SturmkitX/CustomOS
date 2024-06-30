@@ -11,6 +11,8 @@
 #include "../libc/mem.h"
 #include "../cpu/timer.h"
 
+#include "midi.h"
+
 // don't know exactly what ENV values are needed
 char* waddir = "WADS";
 char *homedir = ".";
@@ -138,7 +140,7 @@ void initialize_doom() {
 
     uint8_t key, released, special;
     while(poll_key(&key, &released, &special)) {}
-    initializeAC97(11025);
+    // initializeAC97(11025);
     uint32_t start_tick = get_ticks();
     uint32_t curr_tick = start_tick;
     const uint32_t ticks_to_wait = 1000 / 60;   // 60 fps
@@ -149,8 +151,11 @@ void initialize_doom() {
     uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
     uint8_t last_scancode = 255, last_released = 0;
 
+    init_midi("scc1t2.sf2", 11025);
+
     while (1) {
         doom_update();
+        kprint("Doom updated\n");
 
         // assumes tick at 1ms (but will change soon)
         curr_tick = get_ticks();
@@ -177,8 +182,13 @@ void initialize_doom() {
         }
 
         if (curr_tick - start_tick_audio >= ticks_audio) {
-            int16_t* buffer = doom_get_sound_buffer(2048);
-            playAudio(buffer, 2048);
+            // int16_t* buffer = doom_get_sound_buffer(2048);
+            uint32_t midi_msg;
+
+            while (midi_msg = doom_tick_midi()) {
+                play_midi(midi_msg, 4096);  // up to 4KB
+            }
+            // playAudio(buffer, 2048);
 
             start_tick_audio = curr_tick;
         }

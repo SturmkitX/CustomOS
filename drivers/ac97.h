@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #define AC97_BDL_NO_ENTRIES     32
+#define AC97_BDL_NO_ENTRIES_BUFFER 4
 #define AC97_BDL_NO_SAMPLES_MAX 0xFFFE
 
 #define DEFAULT_SAMPLE_RATE     48000
@@ -17,6 +18,13 @@ struct AC97BufferDescriptor {
 
 uint8_t identifyAC97();
 uint8_t initializeAC97(uint16_t sample_rate);
-void playAudio(uintptr_t buffer, uint32_t bufferLength);
+
+void resumeAudio();
+void pauseAudio();
+void stopAudio();
+uint8_t isAudioPlaying();
+uintptr_t playAudio(uintptr_t buffer, uint32_t bufferLength);
+uint8_t playAudio_Callback();
+uint8_t isAudioBufferFull();
 
 #endif
