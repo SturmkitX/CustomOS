@@ -151,29 +151,29 @@ void initialize_doom() {
     uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
     uint8_t last_scancode = 255, last_released = 0;
 
-    init_midi("scc1t2.sf2", 11025);
+    // init_midi("scc1t2.sf2", 11025);
 
     while (1) {
         doom_update();
         kprint("Doom updated\n");
 
+        if (poll_key(&key, &released, &special)) {
+            if (key != last_scancode || last_released != released) {
+                char doomkey = key_to_ascii(key, special);
+                if (released)
+                    doom_key_up(doomkey);
+                else
+                    doom_key_down(doomkey);
+
+                last_scancode = key;
+                last_released = released;
+            }
+        }
+
         // assumes tick at 1ms (but will change soon)
         curr_tick = get_ticks();
         if (curr_tick - start_tick >= ticks_to_wait) {
             uint8_t* fb = doom_get_framebuffer(3);
-
-            if (poll_key(&key, &released, &special)) {
-                if (key != last_scancode || last_released != released) {
-                    char doomkey = key_to_ascii(key, special);
-                    if (released)
-                        doom_key_up(doomkey);
-                    else
-                        doom_key_down(doomkey);
-
-                    last_scancode = key;
-                    last_released = released;
-                }
-            }
 
             // needs improvement
             draw_icon(0, 0, resx, resy, fb);
@@ -181,17 +181,17 @@ void initialize_doom() {
             start_tick = curr_tick;
         }
 
-        if (curr_tick - start_tick_audio >= ticks_audio) {
-            // int16_t* buffer = doom_get_sound_buffer(2048);
-            uint32_t midi_msg;
+        // if (curr_tick - start_tick_audio >= ticks_audio) {
+        //     // int16_t* buffer = doom_get_sound_buffer(2048);
+        //     uint32_t midi_msg;
 
-            while (midi_msg = doom_tick_midi()) {
-                play_midi(midi_msg, 4096);  // up to 4KB
-            }
-            // playAudio(buffer, 2048);
+        //     while (midi_msg = doom_tick_midi()) {
+        //         play_midi(midi_msg, 4096);  // up to 4KB
+        //     }
+        //     // playAudio(buffer, 2048);
 
-            start_tick_audio = curr_tick;
-        }
+        //     start_tick_audio = curr_tick;
+        // }
     }
 
 }

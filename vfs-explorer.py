@@ -91,5 +91,5 @@ if __name__ == '__main__':
     print("Format size = ", entry_size)
     get_files('hdda.img')
     # put_file('hdda.img', 'udp-server.py')
-    # put_file('hdda.img', 'tinymidipcm/scc1t2.sf2', 'scc1t2.sf2')
-    extract_file('hdda.img', 'e13.raw')
+    put_file('hdda.img', 'pic-loading.raw')
+    # extract_file('hdda.img', 'e13.raw')
