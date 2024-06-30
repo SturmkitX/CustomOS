@@ -141,14 +141,18 @@ void initialize_doom() {
     uint8_t key, released, special;
     while(poll_key(&key, &released, &special)) {}
     // initializeAC97(11025);
+
     uint32_t start_tick = get_ticks();
     uint32_t curr_tick = start_tick;
     const uint32_t ticks_to_wait = 1000 / 60;   // 60 fps
+    const uint32_t ticks_sfx = 1000 / 20;
     const uint32_t ticks_audio = 1000 / 140;
     uint32_t start_tick_audio = start_tick;
+    uint32_t start_tick_sfx = start_tick;
     uint8_t audio_fill = 0;
 
-    uint8_t* audio_buffer = (uint8_t*) kmalloc(0xFFFE * 2); // 0xFFFE
+    uint8_t* audio_buffer = (uint8_t*) kmalloc(2048 * 20); // store 10 chunks
+    uint8_t audio_buffind = 0;
     uint8_t last_scancode = 255, last_released = 0;
 
     // init_midi("scc1t2.sf2", 11025);
@@ -180,6 +184,31 @@ void initialize_doom() {
 
             start_tick = curr_tick;
         }
+
+        // int16_t* buffer = doom_get_sound_buffer(2048);
+        // memory_copy(audio_buffer + audio_buffind * 2048, buffer, 2048);
+        // audio_buffind++;
+
+        // if (audio_buffind == 20) {
+        //     playAudio(audio_buffer, 2048 * 20);
+        //     audio_buffind = 0;
+        // }
+        
+
+        if (curr_tick - start_tick_sfx >= ticks_sfx) {
+            int16_t* buffer = doom_get_sound_buffer(2048);
+            memory_copy(audio_buffer + audio_buffind * 2048, buffer, 2048);
+            audio_buffind++;
+
+            if (audio_buffind % 10 == 0) {
+                playAudio(audio_buffer + (audio_buffind - 10) * 2048, 2048 * 10);
+                audio_buffind %= 20;;
+            }
+
+            start_tick_sfx = curr_tick;
+        }
+
+        playAudio_Callback();
 
         // if (curr_tick - start_tick_audio >= ticks_audio) {
         //     // int16_t* buffer = doom_get_sound_buffer(2048);
