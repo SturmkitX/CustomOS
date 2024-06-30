@@ -27,14 +27,14 @@ load_kernel:
     call print
     call print_nl
 
+    mov ax, 0x4f02  ; VESA command
+    mov bx, 0x4112  ; 640x480, 24 bit color (RGB), linear framebuffer (0x4000 ored)
+    int 0x10
+
     mov bx, STAGE2_OFFSET ; Read from disk and store in 0x1000
     mov dh, 24 ; Our future kernel will be larger, make this big; ATTENTION: Current Kernel is at least 56
     ; sectors long and we risk getting errors. We should somehow load the contents of the floppy from the
     ; protected 32-bit mode. If I increase dh past 52, the bootloader hangs when reading the floppy
-
-    mov ax, 0x4f02  ; VESA command
-    mov bx, 0x4112  ; 640x480, 24 bit color (RGB), linear framebuffer (0x4000 ored)
-    int 0x10
 
     ; mov ax, 0x0013
     ; int 0x10

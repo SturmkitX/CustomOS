@@ -428,7 +428,7 @@ void kernel_main() {
             kprint("Playing E1M1 music\n");
 
             init_midi("scc1t2.sf2", 11025);
-            play_midi_file("e1m1.mid");
+            // play_midi_file("e1m1.mid");
         }
         kprint("You said: ");
         kprint(_k_kbd_buff);

@@ -3,6 +3,7 @@
 #include "../cpu/timer.h"
 #include "../drivers/vfs.h"
 #include "../drivers/ac97.h"
+#include "../drivers/screen.h"
 
 #define TML_MALLOC  kmalloc
 #define TML_REALLOC krealloc
@@ -30,7 +31,6 @@ static tsf* g_TinySoundFont;
 
 // Holds global MIDI playback state
 static double g_Msec;               //current playback time
-static tml_message* g_MidiMessage;  //next message to be played
 
 static float g_SampleRate = 48000.0f;
 
@@ -97,7 +97,7 @@ void init_midi(char* sfName, float sample_rate) {
 	if (!g_TinySoundFont)
 	{
 		kprint("Could not load SoundFont\n");
-		return 1;
+		return;
 	}
 
 	//Initialize preset on special 10th MIDI channel to use percussion sound bank (128) if available

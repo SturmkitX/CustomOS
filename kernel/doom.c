@@ -10,6 +10,8 @@
 #include "../libc/string.h"
 #include "../libc/mem.h"
 #include "../cpu/timer.h"
+#include "../drivers/vga.h"
+#include "../drivers/keyboard.h"
 
 #include "midi.h"
 
@@ -146,16 +148,18 @@ void initialize_doom() {
     uint32_t curr_tick = start_tick;
     const uint32_t ticks_to_wait = 1000 / 60;   // 60 fps
     const uint32_t ticks_sfx = 1000 / 20;
-    const uint32_t ticks_audio = 1000 / 140;
-    uint32_t start_tick_audio = start_tick;
+    const uint32_t ticks_music = 1000 / 140;
+    uint32_t start_tick_music = start_tick;
     uint32_t start_tick_sfx = start_tick;
-    uint8_t audio_fill = 0;
 
-    uint8_t* audio_buffer = (uint8_t*) kmalloc(2048 * 20); // store 10 chunks
-    uint8_t audio_buffind = 0;
+    uint16_t* music_buffer = (uint16_t*) kmalloc(11025 * 4);    // store 1 second on sfx
+    uint32_t music_buffind = 0;
+
+    uint8_t* sfx_buffer = (uint8_t*) kmalloc(2048 * 20); // store 20 chunks
+    uint8_t sfx_buffind = 0;
     uint8_t last_scancode = 255, last_released = 0;
 
-    // init_midi("scc1t2.sf2", 11025);
+    // init_midi("scc1t2.sf2", 11025.0);
 
     while (1) {
         doom_update();
@@ -184,33 +188,22 @@ void initialize_doom() {
 
             start_tick = curr_tick;
         }
-
-        // int16_t* buffer = doom_get_sound_buffer(2048);
-        // memory_copy(audio_buffer + audio_buffind * 2048, buffer, 2048);
-        // audio_buffind++;
-
-        // if (audio_buffind == 20) {
-        //     playAudio(audio_buffer, 2048 * 20);
-        //     audio_buffind = 0;
-        // }
         
 
         if (curr_tick - start_tick_sfx >= ticks_sfx) {
             int16_t* buffer = doom_get_sound_buffer(2048);
-            memory_copy(audio_buffer + audio_buffind * 2048, buffer, 2048);
-            audio_buffind++;
+            memory_copy(sfx_buffer + sfx_buffind * 2048, buffer, 2048);
+            sfx_buffind++;
 
-            if (audio_buffind % 10 == 0) {
-                playAudio(audio_buffer + (audio_buffind - 10) * 2048, 2048 * 10);
-                audio_buffind %= 20;;
+            if (sfx_buffind % 10 == 0) {
+                playAudio(sfx_buffer + (sfx_buffind - 10) * 2048, 2048 * 10);
+                sfx_buffind %= 20;;
             }
 
             start_tick_sfx = curr_tick;
         }
 
-        playAudio_Callback();
-
-        // if (curr_tick - start_tick_audio >= ticks_audio) {
+        // if (curr_tick - start_tick_music >= ticks_music) {
         //     // int16_t* buffer = doom_get_sound_buffer(2048);
         //     uint32_t midi_msg;
 
@@ -219,8 +212,19 @@ void initialize_doom() {
         //     }
         //     // playAudio(buffer, 2048);
 
-        //     start_tick_audio = curr_tick;
+        //     start_tick_music = curr_tick;
         // }
+
+        uint32_t midi_msg = doom_tick_midi();
+        if (midi_msg) {
+            music_buffer[music_buffind++] = (uint16_t)(midi_msg >> 8);
+            if (music_buffind % 10000 == 0) {
+                play_midi(music_buffer + (music_buffind - 10000), 22050);
+                music_buffind %= 20000;
+            }
+        }
+
+        playAudio_Callback();
     }
 
 }
