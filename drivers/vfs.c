@@ -18,7 +18,7 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
 
     // read file table
     kprintf("Sizeof headers = %u\n", sizeof(headers));
-    ata_pio_read48(VFS_START_SECTOR, sizeof(headers) / 512, headers);
+    ata_pio_read48(VFS_START_SECTOR, sizeof(headers) / 512, headers);   // read 1 extra sector in case they don't divide exactly
 
     for (i=0; i < VFS_ENTRIES_MAX_NUM && headers[i].name[0] != 0; i++) {
         if (strcmp(headers[i].name, filename) == 0) {
@@ -34,6 +34,8 @@ struct VFSEntry* vfs_open(const char* filename, const char* mode)
             return &headers[i];
         }
     }
+
+    kprint("File could not be found\n");
 
     if (i < VFS_ENTRIES_MAX_NUM && mode[0] == 'w') {
         // Hit an empty space

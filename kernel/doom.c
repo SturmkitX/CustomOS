@@ -132,7 +132,7 @@ void initialize_doom() {
     doom_set_default_int("key_fire",         DOOM_KEY_R);
     doom_set_default_int("mouse_move",      0); // Mouse will not move forward
 
-    char** argv = {{"C:\\doom\\doom.exe"}};
+    char* argv[] = {"C:\\doom\\doom.exe"};
     doom_init(1, argv, 0);
 
     set_scale_factor(2);
